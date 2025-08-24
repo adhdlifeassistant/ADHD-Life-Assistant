@@ -1,0 +1,108 @@
+name: Auto Deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  version-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build project
+      run: npm run build
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Auto version bump
+      id: version
+      run: |
+        # Determine version bump type based on commit messages
+        if git log --format=%B -n 1 ${{ github.sha }} | grep -q "BREAKING CHANGE\|major:"; then
+          echo "bump=major" >> $GITHUB_OUTPUT
+        elif git log --format=%B -n 1 ${{ github.sha }} | grep -q "feat:\|feature:"; then
+          echo "bump=minor" >> $GITHUB_OUTPUT
+        else
+          echo "bump=patch" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Bump version
+      run: |
+        npm version ${{ steps.version.outputs.bump }} --no-git-tag-version
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+    - name: Update package.json and commit
+      if: github.ref == 'refs/heads/main'
+      run: |
+        git add package.json package-lock.json
+        git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
+        git tag "v${{ env.NEW_VERSION }}"
+        git push origin main --tags
+
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+
+    - name: Pull Vercel Environment Information
+      run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Build Project Artifacts
+      run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Deploy Project Artifacts to Vercel
+      if: github.ref == 'refs/heads/main'
+      run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Deploy Preview to Vercel
+      if: github.event_name == 'pull_request'
+      run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Create GitHub Release
+      if: github.ref == 'refs/heads/main'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.NEW_VERSION }}
+        release_name: Release v${{ env.NEW_VERSION }}
+        body: |
+          Changes in this Release
+          - Auto-generated release for version ${{ env.NEW_VERSION }}
+        draft: false
+        prerelease: false
+
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi
