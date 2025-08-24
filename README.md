@@ -154,3 +154,4 @@ MIT - Fait avec 💜 pour la communauté ADHD
 ---
 
 **Note** : Cette app nécessite une clé API Anthropic Claude pour fonctionner complètement. Le mode offline fonctionne pour l'interface mais pas pour le chat.
+Test automatisation
