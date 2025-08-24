@@ -1,0 +1,35 @@
+{
+  "name": "adhd-life-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "analyze": "ANALYZE=true npm run build",
+    "generate-icons": "node scripts/generate-icons.js",
+    "lighthouse": "npx lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-report.json --chrome-flags=\"--headless\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
+    "next": "15.5.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.5.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "critters": "^0.0.23",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.0",
+    "sharp": "^0.34.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
