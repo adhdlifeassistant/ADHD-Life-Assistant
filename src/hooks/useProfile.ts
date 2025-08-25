@@ -11,6 +11,7 @@ const DEFAULT_PROFILE: UserProfile = {
   medications: [],
   chronotype: 'flexible',
   challenges: [],
+  favoriteModules: [],
   createdAt: Date.now(),
   updatedAt: Date.now(),
   onboardingCompleted: false
@@ -67,6 +68,10 @@ export function useProfile() {
 
   const updateChallenges = (challenges: ADHDChallenge[]) => {
     saveProfile({ challenges });
+  };
+
+  const updateFavoriteModules = (favoriteModules: string[]) => {
+    saveProfile({ favoriteModules });
   };
 
   const addMedication = (medication: Omit<ProfileMedication, 'id'>) => {
@@ -172,6 +177,7 @@ export function useProfile() {
     updateAge,
     updateChronotype,
     updateChallenges,
+    updateFavoriteModules,
     addMedication,
     updateMedication,
     removeMedication,

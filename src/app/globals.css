@@ -530,3 +530,65 @@ html {
   border-radius: inherit;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Module selection enhanced states */
+.module-card-selected {
+  background: linear-gradient(135deg, rgb(239 246 255), rgb(219 234 254));
+  border: 3px solid rgb(59 130 246);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+  transform: translateY(-2px);
+}
+
+.module-card-unselected {
+  background: white;
+  border: 3px solid rgb(229 231 235);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.module-card-unselected:hover {
+  border-color: rgb(147 197 253);
+  background: rgb(248 250 252);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Selection indicators */
+.selection-indicator {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.selection-checkmark {
+  animation: checkmarkSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes checkmarkSlide {
+  from {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(-45deg);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Border width utility class */
+.border-3 {
+  border-width: 3px;
+}

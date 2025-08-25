@@ -7,6 +7,7 @@ import { IdentityStep } from './steps/IdentityStep';
 import { MedicationsStep } from './steps/MedicationsStep';
 import { ChronotypeStep } from './steps/ChronotypeStep';
 import { ChallengesStep } from './steps/ChallengesStep';
+import { ModuleSelectionStep } from './steps/ModuleSelectionStep';
 import { ConfirmationStep } from './steps/ConfirmationStep';
 
 interface OnboardingStepsProps {
@@ -52,6 +53,12 @@ const steps = [
   },
   {
     id: 5,
+    title: 'Modules préférés',
+    component: ModuleSelectionStep,
+    isValid: (data: Partial<UserProfile>) => (data.favoriteModules?.length ?? 0) > 0,
+  },
+  {
+    id: 6,
     title: 'Confirmation',
     component: ConfirmationStep,
     isValid: () => true,

@@ -12,6 +12,9 @@ export interface UserProfile {
   // Défis ADHD
   challenges: ADHDChallenge[];
   
+  // Modules préférés (sélectionnés pendant l'onboarding)
+  favoriteModules: string[];
+  
   // Métadonnées
   createdAt: number;
   updatedAt: number;

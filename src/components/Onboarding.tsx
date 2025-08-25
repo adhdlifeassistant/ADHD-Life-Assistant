@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMood, MOOD_CONFIG } from '@/modules/mood/MoodContext';
+import { NAVIGATION_ITEMS } from '@/modules/dashboard/DashboardContext';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -12,6 +13,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [userName, setUserName] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   const steps = [
     {
@@ -85,6 +87,137 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       )
     },
     {
+      title: '🎯 Choisissez vos modules',
+      content: (
+        <div className="text-center space-y-6">
+          <div className="text-6xl mb-6">🎯</div>
+          
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Choisis tes 3 modules préférés
+            </h2>
+            <p className="text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
+              Sélectionne les outils qui t'intéressent le plus pour personnaliser ton expérience !
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl max-w-md mx-auto mb-8 border border-blue-200 shadow-sm">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <div className="flex space-x-1">
+                  {[...Array(3)].map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index < selectedModules.length
+                          ? 'bg-blue-500 scale-110 shadow-md'
+                          : 'bg-blue-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="font-medium text-blue-700 mb-1">
+                {selectedModules.length} / 3 modules sélectionnés
+              </p>
+              {selectedModules.length >= 3 ? (
+                <p className="text-sm text-blue-600">
+                  ✨ Parfait ! Tu peux encore changer d'avis
+                </p>
+              ) : (
+                <p className="text-sm text-blue-600">
+                  Encore {3 - selectedModules.length} à choisir
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {NAVIGATION_ITEMS.filter(module => module.id !== 'home').map((module) => {
+              const isSelected = selectedModules.includes(module.id);
+              const selectionIndex = selectedModules.indexOf(module.id);
+              
+              return (
+                <button
+                  key={module.id}
+                  onClick={() => {
+                    let newSelection: string[];
+                    
+                    if (isSelected) {
+                      // Retirer le module
+                      newSelection = selectedModules.filter(id => id !== module.id);
+                    } else {
+                      // Ajouter le module (max 3)
+                      if (selectedModules.length >= 3) {
+                        // Remplacer le plus ancien
+                        newSelection = [...selectedModules.slice(1), module.id];
+                      } else {
+                        newSelection = [...selectedModules, module.id];
+                      }
+                    }
+                    
+                    setSelectedModules(newSelection);
+                  }}
+                  className={`
+                    relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105
+                    focus:outline-none focus:ring-4 focus:ring-blue-500/50
+                    ${isSelected 
+                      ? 'module-card-selected' 
+                      : 'module-card-unselected'
+                    }
+                  `}
+                  aria-pressed={isSelected}
+                  aria-describedby={`module-${module.id}-desc`}
+                >
+                  {/* Indicateur de sélection avec numéro d'ordre */}
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg selection-indicator border-2 border-white">
+                      {selectionIndex + 1}
+                    </div>
+                  )}
+                  
+                  {/* Checkmark pour les modules sélectionnés */}
+                  {isSelected && (
+                    <div className="absolute top-3 left-3 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center selection-checkmark shadow-md">
+                      <span className="text-sm font-bold">✓</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-center space-y-3">
+                    <span className="text-4xl">{module.icon}</span>
+                    <div className="text-center">
+                      <h3 className={`font-bold text-base ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
+                        {module.label}
+                      </h3>
+                      <p 
+                        id={`module-${module.id}-desc`}
+                        className={`text-sm mt-1 ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}
+                      >
+                        {module.description}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Effet de sélection avec glow */}
+                  {isSelected && (
+                    <div className="absolute inset-0 border-3 border-blue-500 rounded-2xl bg-blue-500/5 pointer-events-none">
+                      <div className="absolute inset-1 border border-blue-400/50 rounded-xl bg-gradient-to-br from-blue-50/80 via-transparent to-blue-50/40"></div>
+                      {/* Glow effect */}
+                      <div className="absolute -inset-1 bg-blue-500/20 rounded-2xl blur-sm -z-10"></div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-xs text-gray-500 mt-6">
+            💡 Tu pourras accéder à tous les modules plus tard, cette sélection aide juste à personnaliser ton expérience
+          </div>
+        </div>
+      )
+    },
+    {
       title: '🚀 C\'est parti !',
       content: (
         <div className="text-center space-y-6">
@@ -95,20 +228,25 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <p className="text-gray-600 max-w-md mx-auto">
             Votre ADHD Life Assistant est configuré. L'interface s'adapte maintenant à votre humeur.
           </p>
-          <div className="bg-green-50 p-6 rounded-lg max-w-lg mx-auto">
-            <h4 className="font-semibold text-green-800 mb-3">🌟 Vos modules disponibles :</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm text-green-700">
-              <div>💰 Finances empathiques</div>
-              <div>🧹 Ménage gamifié</div>
-              <div>🏥 Suivi santé ADHD</div>
-              <div>📊 Analytics personnels</div>
-              <div>💊 Rappels médicaments</div>
-              <div>🍳 Cuisine adaptative</div>
+          {selectedModules.length > 0 && (
+            <div className="bg-green-50 p-6 rounded-lg max-w-lg mx-auto">
+              <h4 className="font-semibold text-green-800 mb-3">🌟 Vos modules sélectionnés :</h4>
+              <div className="grid grid-cols-1 gap-2 text-sm text-green-700">
+                {selectedModules.map(moduleId => {
+                  const module = NAVIGATION_ITEMS.find(m => m.id === moduleId);
+                  return module ? (
+                    <div key={moduleId} className="flex items-center gap-2">
+                      <span>{module.icon}</span>
+                      <span>{module.label}</span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
             </div>
-          </div>
+          )}
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-sm text-blue-700">
-              💡 Conseil : Commencez par explorer un module qui vous intéresse !
+              💡 Conseil : Explorez vos modules sélectionnés en premier !
             </p>
           </div>
         </div>
@@ -123,6 +261,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     if (currentStep === 2 && !selectedMood) {
       return; // Ne pas avancer si pas de mood
     }
+    if (currentStep === 3 && selectedModules.length === 0) {
+      return; // Ne pas avancer si aucun module sélectionné
+    }
     
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -133,6 +274,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       }
       if (userName) {
         localStorage.setItem('adhd-assistant-username', userName);
+      }
+      if (selectedModules.length > 0) {
+        localStorage.setItem('adhd-favorite-modules', JSON.stringify(selectedModules));
       }
       localStorage.setItem('adhd-assistant-onboarded', 'true');
       onComplete();
@@ -148,6 +292,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const canProceed = () => {
     if (currentStep === 1) return userName.trim().length > 0;
     if (currentStep === 2) return selectedMood !== '';
+    if (currentStep === 3) return selectedModules.length > 0;
     return true;
   };
 
