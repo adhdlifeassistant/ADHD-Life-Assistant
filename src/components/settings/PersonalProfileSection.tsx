@@ -62,15 +62,28 @@ export function PersonalProfileSection() {
             </p>
             
             {showAvatarPicker && (
-              <div className="grid grid-cols-8 gap-2 p-4 bg-white rounded-lg border max-w-lg">
+              <div className="grid grid-cols-8 gap-3 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-sm max-w-lg">
                 {AVATAR_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => handleAvatarSelect(emoji)}
-                    className={`w-10 h-10 text-xl rounded-lg hover:bg-blue-50 transition-colors ${
-                      settings.avatar === emoji ? 'bg-blue-100 ring-2 ring-blue-400' : ''
-                    }`}
+                    className={`
+                      relative w-12 h-12 text-2xl rounded-xl transition-all duration-300 transform hover:scale-110
+                      focus:outline-none focus:ring-4 focus:ring-blue-500/50
+                      ${settings.avatar === emoji 
+                        ? 'bg-gradient-to-br from-blue-100 to-blue-200 ring-3 ring-blue-500 shadow-lg scale-110 border-2 border-blue-400' 
+                        : 'bg-white hover:bg-blue-50 shadow-sm hover:shadow-md border border-blue-100'
+                      }
+                    `}
+                    aria-pressed={settings.avatar === emoji}
+                    title={`Sélectionner l'avatar ${emoji}`}
                   >
+                    {/* Checkmark pour l'avatar sélectionné */}
+                    {settings.avatar === emoji && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center selection-checkmark">
+                        <span className="text-xs font-bold">✓</span>
+                      </div>
+                    )}
                     {emoji}
                   </button>
                 ))}

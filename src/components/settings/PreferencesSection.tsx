@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { CHRONOTYPES, ADHD_CHALLENGES, ADHDChallenge } from '@/types/profile';
+import { NAVIGATION_ITEMS } from '@/modules/dashboard/DashboardContext';
 
 export function PreferencesSection() {
   const { 
     profile, 
     updateChronotype, 
-    updateChallenges 
+    updateChallenges,
+    updateFavoriteModules 
   } = useProfile();
   
   const { 
@@ -22,6 +24,10 @@ export function PreferencesSection() {
 
   const [selectedChallenges, setSelectedChallenges] = useState<ADHDChallenge[]>(
     profile.challenges || []
+  );
+  
+  const [selectedModules, setSelectedModules] = useState<string[]>(
+    profile.favoriteModules || []
   );
 
   const handleChronotypeChange = (newChronotype: 'morning' | 'evening' | 'flexible') => {
@@ -53,11 +59,161 @@ export function PreferencesSection() {
 
   const canSelectMore = selectedChallenges.length < 3;
 
+  const handleModuleToggle = (moduleId: string) => {
+    let newSelection: string[];
+    
+    if (selectedModules.includes(moduleId)) {
+      // Retirer le module
+      newSelection = selectedModules.filter(id => id !== moduleId);
+    } else {
+      // Ajouter le module (max 3)
+      if (selectedModules.length >= 3) {
+        // Remplacer le plus ancien
+        newSelection = [...selectedModules.slice(1), moduleId];
+      } else {
+        newSelection = [...selectedModules, moduleId];
+      }
+    }
+    
+    setSelectedModules(newSelection);
+    updateFavoriteModules(newSelection);
+  };
+
+  const isModuleSelected = (moduleId: string) => {
+    return selectedModules.includes(moduleId);
+  };
+
+  const canSelectMoreModules = selectedModules.length < 3;
+
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">⏰ Préférences</h2>
         <p className="text-gray-600">Adaptez l'application à votre rythme et vos besoins</p>
+      </div>
+
+      {/* Modules préférés */}
+      <div className="bg-blue-50 p-6 rounded-xl">
+        <h3 className="text-lg font-semibold text-blue-800 mb-4">🎯 Modules préférés</h3>
+        
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200 shadow-sm">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <div className="flex space-x-1">
+                  {[...Array(3)].map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index < selectedModules.length
+                          ? 'bg-blue-500 scale-110 shadow-md'
+                          : 'bg-blue-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="font-medium text-blue-700 mb-1">
+                {selectedModules.length} / 3 modules sélectionnés
+              </p>
+              <p className="text-sm text-blue-600">
+                Vos modules favoris apparaissent en premier dans le menu
+              </p>
+              {selectedModules.length >= 3 ? (
+                <p className="text-sm text-blue-600 mt-1">
+                  ✨ Parfait ! Vous pouvez encore les modifier
+                </p>
+              ) : (
+                <p className="text-sm text-blue-600 mt-1">
+                  Encore {3 - selectedModules.length} module(s) à choisir
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {NAVIGATION_ITEMS.filter(module => module.id !== 'home').map((module) => {
+              const isSelected = isModuleSelected(module.id);
+              const canSelect = canSelectMoreModules || isSelected;
+              const selectionIndex = selectedModules.indexOf(module.id);
+              
+              return (
+                <button
+                  key={module.id}
+                  onClick={() => handleModuleToggle(module.id)}
+                  disabled={!canSelect}
+                  className={`
+                    relative p-6 rounded-2xl border-3 transition-all duration-300 transform hover:scale-105
+                    focus:outline-none focus:ring-4 focus:ring-blue-500/50
+                    ${isSelected 
+                      ? 'module-card-selected' 
+                      : canSelect 
+                      ? 'module-card-unselected'
+                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                    }
+                  `}
+                  aria-pressed={isSelected}
+                  aria-describedby={`module-${module.id}-desc`}
+                >
+                  {/* Indicateur de sélection avec numéro d'ordre */}
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg selection-indicator border-2 border-white">
+                      {selectionIndex + 1}
+                    </div>
+                  )}
+                  
+                  {/* Checkmark pour les modules sélectionnés */}
+                  {isSelected && (
+                    <div className="absolute top-3 left-3 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center selection-checkmark shadow-md">
+                      <span className="text-sm font-bold">✓</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-center space-y-3">
+                    <span className="text-4xl">{module.icon}</span>
+                    <div className="text-center">
+                      <h3 className={`font-bold text-base ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
+                        {module.label}
+                      </h3>
+                      <p 
+                        id={`module-${module.id}-desc`}
+                        className={`text-sm mt-1 ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}
+                      >
+                        {module.description}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Effet de sélection avec glow */}
+                  {isSelected && (
+                    <div className="absolute inset-0 border-3 border-blue-500 rounded-2xl bg-blue-500/5 pointer-events-none">
+                      <div className="absolute inset-1 border border-blue-400/50 rounded-xl bg-gradient-to-br from-blue-50/80 via-transparent to-blue-50/40"></div>
+                      {/* Glow effect */}
+                      <div className="absolute -inset-1 bg-blue-500/20 rounded-2xl blur-sm -z-10"></div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          
+          {selectedModules.length > 0 && (
+            <div className="mt-6 p-4 bg-white rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-800 mb-2">Vos modules préférés:</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedModules.map((moduleId) => {
+                  const module = NAVIGATION_ITEMS.find(m => m.id === moduleId);
+                  return module ? (
+                    <div key={moduleId} className="flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-sm text-blue-700">
+                      <span>{module.icon}</span>
+                      <span>{module.label}</span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Chronotype */}
@@ -111,43 +267,101 @@ export function PreferencesSection() {
         <h3 className="text-lg font-semibold text-purple-800 mb-4">🎯 Défis ADHD - Vos priorités</h3>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-purple-700">
-              Choisissez jusqu'à 3 défis sur lesquels vous voulez vous concentrer
-            </p>
-            <span className="text-sm font-medium text-purple-600">
-              {selectedChallenges.length}/3 sélectionnés
-            </span>
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl border border-purple-200 shadow-sm">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <div className="flex space-x-1">
+                  {[...Array(3)].map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index < selectedChallenges.length
+                          ? 'bg-purple-500 scale-110 shadow-md'
+                          : 'bg-purple-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="font-medium text-purple-700 mb-1">
+                {selectedChallenges.length} / 3 défis sélectionnés
+              </p>
+              <p className="text-sm text-purple-600">
+                Choisissez vos priorités ADHD pour des conseils personnalisés
+              </p>
+              {selectedChallenges.length >= 3 ? (
+                <p className="text-sm text-purple-600 mt-1">
+                  ✨ Parfait ! Vous pouvez encore modifier vos choix
+                </p>
+              ) : (
+                <p className="text-sm text-purple-600 mt-1">
+                  Encore {3 - selectedChallenges.length} défi(s) à choisir
+                </p>
+              )}
+            </div>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid md:grid-cols-2 gap-4">
             {Object.entries(ADHD_CHALLENGES).map(([challengeId, challenge]) => {
               const isSelected = isChallengeSelected(challengeId);
               const canSelect = canSelectMore || isSelected;
+              const selectionIndex = selectedChallenges.indexOf(challengeId as any);
               
               return (
                 <button
                   key={challengeId}
                   onClick={() => handleChallengeToggle(challengeId)}
                   disabled={!canSelect}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    isSelected
-                      ? 'border-purple-400 bg-purple-100 text-purple-800'
+                  className={`
+                    relative p-6 rounded-2xl border-3 text-left transition-all duration-300 transform hover:scale-105
+                    focus:outline-none focus:ring-4 focus:ring-purple-500/50
+                    ${isSelected
+                      ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-lg shadow-purple-500/25'
                       : canSelect
-                      ? 'border-purple-200 hover:border-purple-300 hover:bg-purple-50'
-                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                  }`}
+                      ? 'border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50/30 shadow-sm hover:shadow-md'
+                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                    }
+                  `}
+                  aria-pressed={isSelected}
+                  aria-describedby={`challenge-${challengeId}-desc`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{challenge.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium">{challenge.label}</div>
-                      <div className="text-sm opacity-80">{challenge.description}</div>
+                  {/* Indicateur de sélection avec numéro d'ordre */}
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg selection-indicator border-2 border-white">
+                      {selectionIndex + 1}
                     </div>
-                    {isSelected && (
-                      <span className="text-purple-600 text-xl">✓</span>
-                    )}
+                  )}
+                  
+                  {/* Checkmark pour les défis sélectionnés */}
+                  {isSelected && (
+                    <div className="absolute top-3 left-3 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center selection-checkmark shadow-md">
+                      <span className="text-sm font-bold">✓</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center space-y-3 pt-2">
+                    <span className="text-4xl">{challenge.icon}</span>
+                    <div className="text-center">
+                      <h4 className={`font-bold text-base ${isSelected ? 'text-purple-700' : 'text-gray-800'}`}>
+                        {challenge.label}
+                      </h4>
+                      <p 
+                        id={`challenge-${challengeId}-desc`}
+                        className={`text-sm mt-1 ${isSelected ? 'text-purple-600' : 'text-gray-500'}`}
+                      >
+                        {challenge.description}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Effet de sélection avec glow */}
+                  {isSelected && (
+                    <div className="absolute inset-0 border-3 border-purple-500 rounded-2xl bg-purple-500/5 pointer-events-none">
+                      <div className="absolute inset-1 border border-purple-400/50 rounded-xl bg-gradient-to-br from-purple-50/80 via-transparent to-purple-50/40"></div>
+                      {/* Glow effect */}
+                      <div className="absolute -inset-1 bg-purple-500/20 rounded-2xl blur-sm -z-10"></div>
+                    </div>
+                  )}
                 </button>
               );
             })}
