@@ -224,13 +224,23 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-white/50 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSidebarOpen(true);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSidebarOpen(true);
+                }}
+                className="p-2 rounded-lg hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
                 aria-label="Ouvrir le menu de navigation"
                 aria-expanded={isSidebarOpen}
                 aria-controls="navigation-sidebar"
+                style={{ pointerEvents: 'auto', userSelect: 'auto', touchAction: 'manipulation' }}
               >
-                <span className="text-xl" role="img" aria-hidden="true">☰</span>
+                <span className="text-xl pointer-events-none" role="img" aria-hidden="true">☰</span>
               </button>
               <h1 
                 className="font-bold text-center flex-1 truncate mx-4" 
@@ -240,12 +250,22 @@ export default function Dashboard() {
                 ADHD Assistant
               </h1>
               <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 rounded-lg hover:bg-white/50 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowSettings(true);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowSettings(true);
+                }}
+                className="p-2 rounded-lg hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
                 aria-label="Ouvrir les paramètres"
                 aria-expanded={showSettings}
+                style={{ pointerEvents: 'auto', userSelect: 'auto', touchAction: 'manipulation' }}
               >
-                <span className="text-xl" role="img" aria-hidden="true">⚙️</span>
+                <span className="text-xl pointer-events-none" role="img" aria-hidden="true">⚙️</span>
               </button>
             </div>
           </header>
