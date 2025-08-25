@@ -27,7 +27,12 @@ export default function OnboardingPage() {
   };
 
   const handlePrevious = () => {
-    setCurrentStep(prev => Math.max(0, prev - 1));
+    if (currentStep === 0) {
+      // Au lieu d'utiliser browser back, on redirige toujours vers le menu principal
+      router.push('/');
+    } else {
+      setCurrentStep(prev => Math.max(0, prev - 1));
+    }
   };
 
   const handleComplete = () => {
