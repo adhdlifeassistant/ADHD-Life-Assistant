@@ -120,10 +120,9 @@ export function OnboardingSteps({
       <div className="flex justify-between items-center p-6 pt-0 border-t border-gray-100">
         <button
           onClick={onPrevious}
-          disabled={isFirst}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
         >
-          ← Précédent
+          ← {isFirst ? 'Retour au menu' : 'Précédent'}
         </button>
         
         <div className="flex items-center gap-2">
