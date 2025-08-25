@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { OnboardingStepProps, ProfileMedication, MEDICATION_FREQUENCIES } from '@/types/profile';
+import { OnboardingStepProps, ProfileMedication, MEDICATION_FREQUENCIES, MEDICATION_UNITS } from '@/types/profile';
 
 export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -9,6 +9,8 @@ export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
     name: '',
     time: '',
     frequency: 'daily' as ProfileMedication['frequency'],
+    quantity: undefined as number | undefined,
+    unit: 'mg' as keyof typeof MEDICATION_UNITS,
     notes: ''
   });
 
@@ -21,6 +23,8 @@ export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
         name: newMedication.name,
         time: newMedication.time,
         frequency: newMedication.frequency,
+        quantity: newMedication.quantity,
+        unit: newMedication.unit,
         notes: newMedication.notes || undefined
       };
 
@@ -33,6 +37,8 @@ export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
         name: '',
         time: '',
         frequency: 'daily',
+        quantity: undefined,
+        unit: 'mg',
         notes: ''
       });
       setShowAddForm(false);
@@ -69,7 +75,14 @@ export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
           {medications.map((med) => (
             <div key={med.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
               <div>
-                <div className="font-medium text-blue-800">{med.name}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="font-medium text-blue-800">{med.name}</div>
+                  {med.quantity && med.unit && (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      {med.quantity} {med.unit}
+                    </span>
+                  )}
+                </div>
                 <div className="text-sm text-blue-600">
                   {med.time} • {MEDICATION_FREQUENCIES[med.frequency]}
                 </div>
@@ -134,6 +147,54 @@ export function MedicationsStep({ data, updateData }: OnboardingStepProps) {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quantité (optionnel)
+              </label>
+              <input
+                type="number"
+                step="0.25"
+                min="0"
+                value={newMedication.quantity || ''}
+                onChange={(e) => setNewMedication(prev => ({ 
+                  ...prev, 
+                  quantity: e.target.value ? parseFloat(e.target.value) : undefined 
+                }))}
+                placeholder="Ex: 10, 0.5, 2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Unité (optionnel)
+              </label>
+              <select
+                value={newMedication.unit}
+                onChange={(e) => setNewMedication(prev => ({ ...prev, unit: e.target.value as keyof typeof MEDICATION_UNITS }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Object.entries(MEDICATION_UNITS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes (optionnel)
+            </label>
+            <input
+              type="text"
+              value={newMedication.notes}
+              onChange={(e) => setNewMedication(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Avec repas, conditions..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
 
           <div className="flex gap-2">

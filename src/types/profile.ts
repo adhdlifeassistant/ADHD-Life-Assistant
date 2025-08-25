@@ -26,6 +26,8 @@ export interface ProfileMedication {
   name: string;
   time: string; // Format HH:MM
   frequency: 'daily' | 'twice-daily' | 'weekly' | 'as-needed';
+  quantity?: number; // Dosage amount (e.g., 10, 0.5, 2)
+  unit?: string; // Unit of measurement (e.g., 'mg', 'comprimés', 'ml')
   notes?: string;
 }
 
@@ -121,6 +123,26 @@ export const MEDICATION_FREQUENCIES = {
   'weekly': 'Une fois par semaine',
   'as-needed': 'Si besoin'
 };
+
+export const MEDICATION_UNITS = {
+  'mg': 'mg (milligrammes)',
+  'g': 'g (grammes)',
+  'mcg': 'mcg (microgrammes)',
+  'comprimés': 'comprimé(s)',
+  'gélules': 'gélule(s)',
+  'capsules': 'capsule(s)',
+  'ml': 'ml (millilitres)',
+  'cl': 'cl (centilitres)',
+  'l': 'l (litres)',
+  'gouttes': 'goutte(s)',
+  'sachets': 'sachet(s)',
+  'cuillères': 'cuillère(s)',
+  'doses': 'dose(s)',
+  'puffs': 'puff(s)', // pour les inhalateurs
+  'UI': 'UI (unités internationales)'
+} as const;
+
+export type MedicationUnit = keyof typeof MEDICATION_UNITS;
 
 // Types pour l'onboarding
 export interface OnboardingStep {

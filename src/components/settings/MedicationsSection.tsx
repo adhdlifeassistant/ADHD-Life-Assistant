@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { ProfileMedication, MEDICATION_FREQUENCIES } from '@/types/profile';
+import { ProfileMedication, MEDICATION_FREQUENCIES, MEDICATION_UNITS } from '@/types/profile';
 
 export function MedicationsSection() {
   const { 
@@ -25,13 +25,15 @@ export function MedicationsSection() {
     name: '',
     time: '',
     frequency: 'daily' as ProfileMedication['frequency'],
+    quantity: undefined as number | undefined,
+    unit: 'mg' as keyof typeof MEDICATION_UNITS,
     notes: ''
   });
 
   const handleAddMedication = () => {
     if (newMedication.name && newMedication.time) {
       addMedication(newMedication);
-      setNewMedication({ name: '', time: '', frequency: 'daily', notes: '' });
+      setNewMedication({ name: '', time: '', frequency: 'daily', quantity: undefined, unit: 'mg', notes: '' });
       setShowAddForm(false);
     }
   };
@@ -146,7 +148,7 @@ export function MedicationsSection() {
           <div className="bg-gray-50 p-6 rounded-xl mb-6 border-2 border-dashed border-gray-300">
             <h4 className="font-medium text-gray-800 mb-4">Nouvelle médication</h4>
             
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nom du médicament *
@@ -195,13 +197,46 @@ export function MedicationsSection() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quantité (optionnel)
+                </label>
+                <input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  value={newMedication.quantity || ''}
+                  onChange={(e) => setNewMedication(prev => ({ 
+                    ...prev, 
+                    quantity: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                  placeholder="Ex: 10, 0.5, 2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unité (optionnel)
+                </label>
+                <select
+                  value={newMedication.unit}
+                  onChange={(e) => setNewMedication(prev => ({ ...prev, unit: e.target.value as keyof typeof MEDICATION_UNITS }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {Object.entries(MEDICATION_UNITS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Notes (optionnel)
                 </label>
                 <input
                   type="text"
                   value={newMedication.notes}
                   onChange={(e) => setNewMedication(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Avec repas, dosage..."
+                  placeholder="Avec repas, conditions..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -247,9 +282,16 @@ export function MedicationsSection() {
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-2">
                           <h4 className="text-lg font-semibold text-gray-800">{medication.name}</h4>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                            {medication.time} • {MEDICATION_FREQUENCIES[medication.frequency]}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {medication.quantity && medication.unit && (
+                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
+                                {medication.quantity} {medication.unit}
+                              </span>
+                            )}
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                              {medication.time} • {MEDICATION_FREQUENCIES[medication.frequency]}
+                            </span>
+                          </div>
                         </div>
                         {medication.notes && (
                           <p className="text-sm text-gray-600 mb-3">{medication.notes}</p>
@@ -331,6 +373,8 @@ function EditMedicationForm({ medication, onSave, onCancel }: EditMedicationForm
     name: medication.name,
     time: medication.time,
     frequency: medication.frequency,
+    quantity: medication.quantity,
+    unit: medication.unit || 'mg',
     notes: medication.notes || ''
   });
 
@@ -341,7 +385,7 @@ function EditMedicationForm({ medication, onSave, onCancel }: EditMedicationForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
           <input
@@ -370,6 +414,33 @@ function EditMedicationForm({ medication, onSave, onCancel }: EditMedicationForm
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             {Object.entries(MEDICATION_FREQUENCIES).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
+          <input
+            type="number"
+            step="0.25"
+            min="0"
+            value={formData.quantity || ''}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              quantity: e.target.value ? parseFloat(e.target.value) : undefined 
+            }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Ex: 10, 0.5, 2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
+          <select
+            value={formData.unit}
+            onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value as keyof typeof MEDICATION_UNITS }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            {Object.entries(MEDICATION_UNITS).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
