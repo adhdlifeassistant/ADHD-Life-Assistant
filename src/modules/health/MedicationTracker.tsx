@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useHealth, COMMON_SIDE_EFFECTS } from './HealthContext';
 import { useMood } from '../mood/MoodContext';
 import { useReminders, MEDICATION_ICONS } from '../reminders/ReminderContext';
+import { useProfile } from '@/hooks/useProfile';
+import { useMedicationSync } from '@/hooks/useMedicationSync';
 import { Medication, SideEffect } from '@/types/health';
 
 export function MedicationTracker() {
@@ -17,6 +19,8 @@ export function MedicationTracker() {
   } = useHealth();
   const { currentMood } = useMood();
   const { reminders } = useReminders();
+  const { addMedication: addToProfile, profile } = useProfile();
+  const { syncToProfile } = useMedicationSync();
   
   const [showAddMedication, setShowAddMedication] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);

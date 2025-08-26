@@ -20,6 +20,7 @@ import {
   SideEffect
 } from '@/types/health';
 import { MoodType } from '@/types/mood';
+import { syncHealthMedicationToProfile } from '@/lib/medicationSync';
 
 // Configuration des métriques de bien-être
 const WELLBEING_METRICS: Record<WellbeingMetric, WellbeingMetricConfig> = {
