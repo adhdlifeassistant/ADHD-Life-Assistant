@@ -6,25 +6,26 @@ import { useReminders, MEDICATION_ICONS } from './ReminderContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useHealth } from '@/modules/health/HealthContext';
 import { useMedicationSync } from '@/hooks/useMedicationSync';
-import { ReminderFormData, ReminderFrequency } from '@/types/reminders';
+import { ReminderFormData, ReminderFrequency, Reminder } from '@/types/reminders';
 
 interface AddReminderFormProps {
   onClose: () => void;
+  reminder?: Reminder; // Optional reminder for editing mode
 }
 
-export default function AddReminderForm({ onClose }: AddReminderFormProps) {
+export default function AddReminderForm({ onClose, reminder }: AddReminderFormProps) {
   const { getMoodConfig } = useMood();
-  const { addReminder } = useReminders();
+  const { addReminder, updateReminder } = useReminders();
   const { profile } = useProfile();
   const { medications: healthMedications } = useHealth();
   const { syncToProfile } = useMedicationSync();
   const moodConfig = getMoodConfig();
 
   const [formData, setFormData] = useState<ReminderFormData>({
-    name: '',
-    time: '08:00',
-    frequency: 'daily',
-    icon: '💊'
+    name: reminder?.name || '',
+    time: reminder?.time || '08:00',
+    frequency: reminder?.frequency || 'daily',
+    icon: reminder?.icon || '💊'
   });
   const [selectedMedication, setSelectedMedication] = useState<string>('');
   const [selectedMedicationType, setSelectedMedicationType] = useState<'profile' | 'health' | 'manual'>('manual');
@@ -53,7 +54,13 @@ export default function AddReminderForm({ onClose }: AddReminderFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name.trim()) {
-      addReminder(formData);
+      if (reminder) {
+        // Edit mode: update existing reminder
+        updateReminder(reminder.id, formData);
+      } else {
+        // Add mode: create new reminder
+        addReminder(formData);
+      }
       onClose();
     }
   };
@@ -103,6 +110,25 @@ export default function AddReminderForm({ onClose }: AddReminderFormProps) {
       }
     });
   }, []); // Run only once on mount
+  
+  // Initialize medication selection when editing
+  useEffect(() => {
+    if (reminder) {
+      // Try to find a matching medication by name
+      const matchingMedication = allMedications.find(med => 
+        med.name.toLowerCase() === reminder.name.toLowerCase()
+      );
+      
+      if (matchingMedication) {
+        setSelectedMedication(matchingMedication.id);
+        setSelectedMedicationType(matchingMedication.source);
+      } else {
+        // No matching medication found, use manual entry
+        setSelectedMedication('');
+        setSelectedMedicationType('manual');
+      }
+    }
+  }, [reminder, allMedications]);
 
   const frequencyOptions: { value: ReminderFrequency; label: string }[] = [
     { value: 'daily', label: 'Tous les jours' },
@@ -116,7 +142,7 @@ export default function AddReminderForm({ onClose }: AddReminderFormProps) {
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-800">
-            Nouveau rappel
+            {reminder ? 'Modifier le rappel' : 'Nouveau rappel'}
           </h2>
           <button
             onClick={onClose}
@@ -269,7 +295,7 @@ export default function AddReminderForm({ onClose }: AddReminderFormProps) {
               className={`flex-1 px-4 py-3 rounded-xl font-medium text-white transition-colors ${moodConfig.bgColor.replace('bg-', 'bg-').replace('-50', '-500')} hover:opacity-90`}
               style={{ backgroundColor: 'var(--mood-primary)' }}
             >
-              Créer
+              {reminder ? 'Sauvegarder' : 'Créer'}
             </button>
           </div>
         </form>

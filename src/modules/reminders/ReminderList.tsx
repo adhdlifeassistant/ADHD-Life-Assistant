@@ -11,6 +11,7 @@ export default function ReminderList() {
   const { getMoodConfig } = useMood();
   const { reminders, markAsTaken, snoozeReminder, deleteReminder, getTodaysReminders } = useReminders();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
 
@@ -225,8 +226,16 @@ export default function ReminderList() {
                       </>
                     )}
                     <button
+                      onClick={() => setEditingReminder(reminder)}
+                      className="px-2 py-1 text-sm rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
+                      title="Modifier le rappel"
+                    >
+                      ✏️
+                    </button>
+                    <button
                       onClick={() => deleteReminder(reminder.id)}
                       className="px-2 py-1 text-sm rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                      title="Supprimer le rappel"
                     >
                       🗑️
                     </button>
@@ -238,9 +247,16 @@ export default function ReminderList() {
         </div>
       )}
 
-      {/* Formulaire d'ajout */}
+      {/* Formulaire d'ajout/modification */}
       {showAddForm && (
         <AddReminderForm onClose={() => setShowAddForm(false)} />
+      )}
+      
+      {editingReminder && (
+        <AddReminderForm 
+          reminder={editingReminder}
+          onClose={() => setEditingReminder(null)} 
+        />
       )}
     </div>
   );
