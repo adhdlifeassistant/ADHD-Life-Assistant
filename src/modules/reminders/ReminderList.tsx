@@ -194,6 +194,11 @@ export default function ReminderList() {
                         <span className="text-slate-600">
                           {formatTime(reminder.time)} • {formatFrequency(reminder.frequency)}
                         </span>
+                        {reminder.quantity && reminder.unit && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                            {reminder.quantity} {reminder.unit}
+                          </span>
+                        )}
                         <span className={status.color}>
                           {status.text}
                         </span>
