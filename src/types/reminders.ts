@@ -11,6 +11,8 @@ export interface Reminder {
   snoozedUntil?: number;
   icon: string;
   color: string;
+  quantity?: number;
+  unit?: string;
 }
 
 export interface ReminderNotification {
@@ -26,6 +28,8 @@ export interface ReminderFormData {
   time: string;
   frequency: ReminderFrequency;
   icon: string;
+  quantity?: number;
+  unit?: string;
 }
 
 export interface ReminderContextType {

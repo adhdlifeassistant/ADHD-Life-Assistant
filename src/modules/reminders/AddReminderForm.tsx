@@ -25,7 +25,9 @@ export default function AddReminderForm({ onClose, reminder }: AddReminderFormPr
     name: reminder?.name || '',
     time: reminder?.time || '08:00',
     frequency: reminder?.frequency || 'daily',
-    icon: reminder?.icon || '💊'
+    icon: reminder?.icon || '💊',
+    quantity: reminder?.quantity,
+    unit: reminder?.unit
   });
   const [selectedMedication, setSelectedMedication] = useState<string>('');
   const [selectedMedicationType, setSelectedMedicationType] = useState<'profile' | 'health' | 'manual'>('manual');
@@ -73,7 +75,9 @@ export default function AddReminderForm({ onClose, reminder }: AddReminderFormPr
         time: medication.time,
         frequency: medication.frequency === 'twice-daily' ? 'daily' : 
                  medication.frequency === 'as-needed' ? 'daily' : medication.frequency as ReminderFrequency,
-        icon: '💊'
+        icon: '💊',
+        quantity: medication.quantity,
+        unit: medication.unit
       });
       setSelectedMedication(medicationId);
       setSelectedMedicationType(medication.source);
@@ -93,7 +97,9 @@ export default function AddReminderForm({ onClose, reminder }: AddReminderFormPr
       name: '',
       time: '08:00',
       frequency: 'daily',
-      icon: '💊'
+      icon: '💊',
+      quantity: undefined,
+      unit: undefined
     });
     setSelectedMedication('');
     setSelectedMedicationType('manual');
@@ -223,6 +229,51 @@ export default function AddReminderForm({ onClose, reminder }: AddReminderFormPr
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
+            </div>
+          )}
+
+          {/* Quantité et unité - affiché seulement si saisie manuelle */}
+          {(selectedMedicationType === 'manual' || allMedications.length === 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Quantité
+                </label>
+                <input
+                  type="number"
+                  value={formData.quantity || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    quantity: e.target.value ? Number(e.target.value) : undefined 
+                  }))}
+                  placeholder="10"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Unité
+                </label>
+                <select
+                  value={formData.unit || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    unit: e.target.value || undefined 
+                  }))}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Choisir...</option>
+                  <option value="mg">mg</option>
+                  <option value="g">g</option>
+                  <option value="ml">ml</option>
+                  <option value="comprimés">comprimés</option>
+                  <option value="gélules">gélules</option>
+                  <option value="gouttes">gouttes</option>
+                  <option value="cuillères">cuillères</option>
+                </select>
+              </div>
             </div>
           )}
 
