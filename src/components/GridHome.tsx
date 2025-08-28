@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useMood, MOOD_CONFIG } from '@/modules/mood/MoodContext';
-import IconGrid from './IconGrid';
+import MainIconGrid from './MainIconGrid';
 
 function MoodSelectorHeader() {
   const { currentMood, setMood } = useMood();
@@ -47,8 +47,18 @@ export default function GridHome({ onSettingsClick }: GridHomeProps) {
       {/* Sélecteur de mood flottant */}
       <MoodSelectorHeader />
       
+      {/* Header principal */}
+      <div className="pt-20 pb-8 text-center">
+        <h1 className="text-4xl font-bold mb-4" style={{ color: 'var(--mood-text)' }}>
+          ADHD Assistant
+        </h1>
+        <p className="text-lg opacity-80" style={{ color: 'var(--mood-text)' }}>
+          Choisissez votre module
+        </p>
+      </div>
+      
       {/* Grille d'icônes principale */}
-      <IconGrid onSettingsClick={onSettingsClick} />
+      <MainIconGrid onSettingsClick={onSettingsClick} />
     </div>
   );
 }
