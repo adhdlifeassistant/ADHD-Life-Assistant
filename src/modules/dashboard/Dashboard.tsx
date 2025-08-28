@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDashboard } from './DashboardContext';
-import Sidebar from './Sidebar';
+import SimplifiedSidebar from '@/components/SimplifiedSidebar';
 import DashboardHome from './DashboardHome';
 import ChatInterface from '@/modules/chat/ChatInterface';
 import ReminderList from '@/modules/reminders/ReminderList';
@@ -207,8 +207,8 @@ export default function Dashboard() {
   return (
     <div id="dashboard-root" className="min-h-screen bg-gradient-to-br transition-all duration-700 ease-in-out">
       <div className="flex h-screen">
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Sidebar simplifiée */}
+        <SimplifiedSidebar />
 
         {/* Main content */}
         <main 
@@ -219,7 +219,7 @@ export default function Dashboard() {
         >
           {/* Header mobile */}
           <header 
-            className="lg:hidden bg-white/80 backdrop-blur-md border-b border-white/20 p-3 safe-area-inset-top"
+            className="lg:hidden bg-white/80 backdrop-blur-md border-b border-white/20 p-3 safe-area-inset-top rounded-b-adhd"
             role="banner"
           >
             <div className="flex items-center justify-between">
@@ -234,7 +234,7 @@ export default function Dashboard() {
                   e.stopPropagation();
                   setSidebarOpen(true);
                 }}
-                className="p-2 rounded-lg hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
+                className="p-2 rounded-adhd hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
                 aria-label="Ouvrir le menu de navigation"
                 aria-expanded={isSidebarOpen}
                 aria-controls="navigation-sidebar"
@@ -260,7 +260,7 @@ export default function Dashboard() {
                   e.stopPropagation();
                   setShowSettings(true);
                 }}
-                className="p-2 rounded-lg hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
+                className="p-2 rounded-adhd hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
                 aria-label="Ouvrir les paramètres"
                 aria-expanded={showSettings}
                 style={{ pointerEvents: 'auto', userSelect: 'auto', touchAction: 'manipulation' }}
