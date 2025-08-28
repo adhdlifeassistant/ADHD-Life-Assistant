@@ -90,10 +90,14 @@ const MAIN_ICONS = [
   }
 ];
 
-export default function MainIconGrid({ onSettingsClick }) {
+interface MainIconGridProps {
+  onSettingsClick?: () => void;
+}
+
+export default function MainIconGrid({ onSettingsClick }: MainIconGridProps) {
   const { setView } = useDashboard();
 
-  const handleIconClick = (iconId) => {
+  const handleIconClick = (iconId: string) => {
     if (iconId === 'settings') {
       onSettingsClick?.();
     } else {
