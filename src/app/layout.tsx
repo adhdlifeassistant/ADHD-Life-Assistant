@@ -8,7 +8,9 @@ import { FinanceProvider } from "@/modules/finance/FinanceContext";
 import { CleaningProvider } from "@/modules/cleaning/CleaningContext";
 import { HealthProvider } from "@/modules/health/HealthContext";
 import { AnalyticsProvider } from "@/modules/analytics/AnalyticsContext";
+import { AuthProvider } from "@/modules/auth/AuthContext";
 import ThemeProvider from "@/components/ui/ThemeProvider";
+import AuthErrorBoundary from "@/components/auth/ErrorBoundary";
 import PWAInstall from "@/components/PWAInstall";
 
 const geistSans = Geist({
@@ -87,24 +89,28 @@ export default function RootLayout({
           className="sr-only"
         ></div>
 
-        <MoodProvider>
-          <ReminderProvider>
-            <FinanceProvider>
-              <CleaningProvider>
-                <HealthProvider>
-                  <AnalyticsProvider>
-                    <DashboardProvider>
-                      <ThemeProvider>
-                        {children}
-                        <PWAInstall />
-                      </ThemeProvider>
-                    </DashboardProvider>
-                  </AnalyticsProvider>
-                </HealthProvider>
-              </CleaningProvider>
-            </FinanceProvider>
-          </ReminderProvider>
-        </MoodProvider>
+        <AuthErrorBoundary>
+          <AuthProvider>
+            <MoodProvider>
+              <ReminderProvider>
+                <FinanceProvider>
+                  <CleaningProvider>
+                    <HealthProvider>
+                      <AnalyticsProvider>
+                        <DashboardProvider>
+                          <ThemeProvider>
+                            {children}
+                            <PWAInstall />
+                          </ThemeProvider>
+                        </DashboardProvider>
+                      </AnalyticsProvider>
+                    </HealthProvider>
+                  </CleaningProvider>
+                </FinanceProvider>
+              </ReminderProvider>
+            </MoodProvider>
+          </AuthProvider>
+        </AuthErrorBoundary>
       </body>
     </html>
   );
