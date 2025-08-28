@@ -19,8 +19,8 @@
   /* Variables principales avec tons apaisants */
   --mood-primary: rgb(139 92 246);
   --mood-secondary: var(--adhd-lavender);
-  --mood-background: linear-gradient(135deg, var(--adhd-cream), var(--adhd-powder), var(--adhd-mint));
-  --mood-text: rgb(75 85 99);
+  --mood-background: linear-gradient(135deg, #fefce8, #dbeafe, #dcfce7);
+  --mood-text: rgb(71 85 105);
   --mood-accent: rgb(167 139 250);
   --mood-shadow: rgba(139, 92, 246, 0.12);
   --mood-border: rgba(139, 92, 246, 0.15);
@@ -296,16 +296,36 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1.5rem;
   padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .icon-grid.size-small {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 1rem;
 }
 
 .icon-grid.size-large {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 2rem;
+}
+
+@media (max-width: 640px) {
+  .icon-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .icon-grid.size-small {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .icon-grid.size-large {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
 }
 
 .module-icon {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDashboard } from './DashboardContext';
-import SimplifiedSidebar from '@/components/SimplifiedSidebar';
+import GridHome from '@/components/GridHome';
 import DashboardHome from './DashboardHome';
 import ChatInterface from '@/modules/chat/ChatInterface';
 import ReminderList from '@/modules/reminders/ReminderList';
@@ -47,7 +47,7 @@ function FocusModule() {
 }
 
 export default function Dashboard() {
-  const { currentView, isSidebarOpen, setSidebarOpen } = useDashboard();
+  const { currentView, setView } = useDashboard();
   const { needsOnboarding, completeOnboarding } = useOnboarding();
   const [showSettings, setShowSettings] = React.useState(false);
   
@@ -82,7 +82,7 @@ export default function Dashboard() {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'home':
-        return <DashboardHome />;
+        return <GridHome onSettingsClick={() => setShowSettings(true)} />;
       case 'chat':
         return (
           <div className="max-w-4xl mx-auto">
@@ -206,99 +206,73 @@ export default function Dashboard() {
 
   return (
     <div id="dashboard-root" className="min-h-screen bg-gradient-to-br transition-all duration-700 ease-in-out">
-      <div className="flex h-screen">
-        {/* Sidebar simplifiée */}
-        <SimplifiedSidebar />
+      {currentView === 'home' ? (
+        // Vue grille complète pour l'accueil
+        renderCurrentView()
+      ) : (
+        // Vue normale pour les modules
+        <div className="flex h-screen">
+          {/* Bouton retour à l'accueil */}
+          <div className="fixed top-4 left-4 z-50">
+            <button
+              onClick={() => setView('home')}
+              className="p-3 bg-white/90 backdrop-blur-md rounded-adhd-lg shadow-lg hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Retour à l'accueil"
+              title="Retour à l'accueil"
+            >
+              <span className="text-xl" role="img" aria-hidden="true">🏠</span>
+            </button>
+          </div>
+          
+          {/* Bouton paramètres */}
+          <div className="fixed top-4 right-4 z-50">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-3 bg-white/90 backdrop-blur-md rounded-adhd-lg shadow-lg hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Ouvrir les paramètres"
+              title="Paramètres"
+            >
+              <span className="text-xl" role="img" aria-hidden="true">⚙️</span>
+            </button>
+          </div>
 
-        {/* Main content */}
-        <main 
-          id="main-content"
-          className="flex-1 flex flex-col overflow-hidden"
-          role="main"
-          aria-label="Contenu principal"
-        >
-          {/* Header mobile */}
-          <header 
-            className="lg:hidden bg-white/80 backdrop-blur-md border-b border-white/20 p-3 safe-area-inset-top rounded-b-adhd"
-            role="banner"
+          {/* Main content */}
+          <main 
+            id="main-content"
+            className="w-full flex flex-col overflow-hidden"
+            role="main"
+            aria-label="Contenu principal"
           >
-            <div className="flex items-center justify-between">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSidebarOpen(true);
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSidebarOpen(true);
-                }}
-                className="p-2 rounded-adhd hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
-                aria-label="Ouvrir le menu de navigation"
-                aria-expanded={isSidebarOpen}
-                aria-controls="navigation-sidebar"
-                style={{ pointerEvents: 'auto', userSelect: 'auto', touchAction: 'manipulation' }}
-              >
-                <span className="text-xl pointer-events-none" role="img" aria-hidden="true">☰</span>
-              </button>
-              <h1 
-                className="font-bold text-center flex-1 truncate mx-4" 
-                style={{ color: 'var(--mood-text)' }}
-                id="app-title"
-              >
-                ADHD Assistant
-              </h1>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowSettings(true);
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowSettings(true);
-                }}
-                className="p-2 rounded-adhd hover:bg-white/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 relative z-50 cursor-pointer"
-                aria-label="Ouvrir les paramètres"
-                aria-expanded={showSettings}
-                style={{ pointerEvents: 'auto', userSelect: 'auto', touchAction: 'manipulation' }}
-              >
-                <span className="text-xl pointer-events-none" role="img" aria-hidden="true">⚙️</span>
-              </button>
-            </div>
-          </header>
-
-          {/* Content area */}
-          <section 
-            className="flex-1 overflow-auto safe-area-inset-bottom"
-            aria-labelledby="current-view-title"
-          >
-            <div className="p-4 sm:p-6 lg:p-8 fade-in max-w-full">
-              <h2 id="current-view-title" className="sr-only">
-                {(() => {
-                  switch (currentView) {
-                    case 'home': return 'Tableau de bord principal';
-                    case 'chat': return 'Chat avec Claude';
-                    case 'reminders': return 'Rappels médicaments';
-                    case 'cooking': return 'Cuisine adaptative';
-                    case 'checklists': return 'Checklists anti-oublis';
-                    case 'finance': return 'Finances ADHD';
-                    case 'cleaning': return 'Ménage ADHD';
-                    case 'health': return 'Suivi Santé ADHD';
-                    case 'analytics': return 'Analytics et insights';
-                    case 'tasks': return 'Module Tâches';
-                    case 'focus': return 'Module Focus';
-                    default: return 'Tableau de bord';
-                  }
-                })()}
-              </h2>
-              {renderCurrentView()}
-            </div>
-          </section>
-        </main>
-      </div>
+            {/* Content area */}
+            <section 
+              className="flex-1 overflow-auto safe-area-inset-bottom pt-20"
+              aria-labelledby="current-view-title"
+            >
+              <div className="p-4 sm:p-6 lg:p-8 fade-in max-w-full">
+                <h2 id="current-view-title" className="sr-only">
+                  {(() => {
+                    switch (currentView) {
+                      case 'home': return 'Tableau de bord principal';
+                      case 'chat': return 'Chat avec Claude';
+                      case 'reminders': return 'Rappels médicaments';
+                      case 'cooking': return 'Cuisine adaptative';
+                      case 'checklists': return 'Checklists anti-oublis';
+                      case 'finance': return 'Finances ADHD';
+                      case 'cleaning': return 'Ménage ADHD';
+                      case 'health': return 'Suivi Santé ADHD';
+                      case 'analytics': return 'Analytics et insights';
+                      case 'tasks': return 'Module Tâches';
+                      case 'focus': return 'Module Focus';
+                      default: return 'Tableau de bord';
+                    }
+                  })()}
+                </h2>
+                {renderCurrentView()}
+              </div>
+            </section>
+          </main>
+        </div>
+      )}
 
       {/* Modals et overlays */}
       {needsOnboarding && <Onboarding onComplete={completeOnboarding} />}
