@@ -4,7 +4,6 @@ import type { NextRequest } from 'next/server';
 // Routes qui nécessitent une authentification
 const protectedRoutes = [
   '/settings',
-  '/onboarding', // L'onboarding peut nécessiter une auth selon le contexte
 ];
 
 // Routes publiques (pas d'authentification requise)

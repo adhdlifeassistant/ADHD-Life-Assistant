@@ -12,7 +12,6 @@ import { FinanceInterface } from '@/modules/finance/FinanceInterface';
 import { CleaningInterface } from '@/modules/cleaning/CleaningInterface';
 import { HealthInterface } from '@/modules/health/HealthInterface';
 import { AnalyticsInterface } from '@/modules/analytics/AnalyticsInterface';
-import { Onboarding, useOnboarding } from '@/components/Onboarding';
 import { Settings } from '@/components/Settings';
 import { ContextualHelp, useKeyboardShortcuts } from '@/components/ContextualHelp';
 import { keyboardNavService } from '@/lib/keyboardNavigation';
@@ -48,7 +47,6 @@ function FocusModule() {
 
 export default function Dashboard() {
   const { currentView, setView } = useDashboard();
-  const { needsOnboarding, completeOnboarding } = useOnboarding();
   const [showSettings, setShowSettings] = React.useState(false);
   
   // Raccourcis clavier
@@ -72,12 +70,6 @@ export default function Dashboard() {
     return () => window.removeEventListener('open-settings', handleOpenSettings);
   }, []);
 
-  // Rediriger vers l'onboarding si nécessaire
-  React.useEffect(() => {
-    if (needsOnboarding && typeof window !== 'undefined') {
-      window.location.href = '/onboarding';
-    }
-  }, [needsOnboarding]);
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -275,7 +267,6 @@ export default function Dashboard() {
       )}
 
       {/* Modals et overlays */}
-      {needsOnboarding && <Onboarding onComplete={completeOnboarding} />}
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
       <ContextualHelp />
     </div>

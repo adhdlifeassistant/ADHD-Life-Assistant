@@ -6,7 +6,7 @@ import { UserProfile, ProfileMedication, ADHDChallenge } from '@/types/profile';
 const STORAGE_KEY = 'adhd-user-profile';
 
 const DEFAULT_PROFILE: UserProfile = {
-  name: '',
+  name: 'Utilisateur',
   age: undefined,
   medications: [],
   chronotype: 'flexible',
@@ -14,7 +14,7 @@ const DEFAULT_PROFILE: UserProfile = {
   favoriteModules: [],
   createdAt: Date.now(),
   updatedAt: Date.now(),
-  onboardingCompleted: false
+  onboardingCompleted: true
 };
 
 export function useProfile() {
@@ -128,7 +128,7 @@ export function useProfile() {
 
   // Getters utiles
   const hasProfile = profile.name.length > 0;
-  const needsOnboarding = !profile.onboardingCompleted;
+  const needsOnboarding = false;
   const hasMedications = profile.medications.length > 0;
   
   // Recommandations basées sur le profil

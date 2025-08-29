@@ -52,7 +52,7 @@ export default function ChatInterface() {
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
     } else {
-      const greetingContent = profile.name && profile.onboardingCompleted 
+      const greetingContent = profile.name && profile.true 
         ? getPersonalizedGreeting(profile, currentMood)
         : getMoodGreeting(currentMood);
         
@@ -189,7 +189,7 @@ export default function ChatInterface() {
     setMessages([]);
     localStorage.removeItem('adhd-chat-messages');
     
-    const greetingContent = profile.name && profile.onboardingCompleted 
+    const greetingContent = profile.name && profile.true 
       ? getPersonalizedGreeting(profile, currentMood)
       : getMoodGreeting(currentMood);
       
@@ -216,7 +216,7 @@ export default function ChatInterface() {
               </h3>
               <p className="text-sm opacity-80">
                 Mode {moodConfig.label}
-                {profile.name && profile.onboardingCompleted && (
+                {profile.name && profile.true && (
                   <>
                     {profile.chronotype && (
                       <> • {profile.chronotype === 'morning' ? '🌅 Matinal' : profile.chronotype === 'evening' ? '🦉 Nocturne' : '😴 Flexible'}</>

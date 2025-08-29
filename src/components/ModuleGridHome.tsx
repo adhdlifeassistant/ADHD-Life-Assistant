@@ -136,7 +136,7 @@ export default function ModuleGridHome() {
           {settings.avatar || moodConfig.emoji}
         </div>
         <h1 className="text-3xl md:text-4xl font-bold mb-4 text-display" style={{ color: 'var(--mood-text)' }}>
-          {profile.name && profile.onboardingCompleted 
+          {profile.name 
             ? getPersonalizedDashboardGreeting(dashboardContext)
             : `Bonjour ! Comment te sens-tu ?`
           }

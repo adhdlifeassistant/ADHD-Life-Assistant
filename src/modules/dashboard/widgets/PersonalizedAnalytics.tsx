@@ -46,7 +46,7 @@ export default function PersonalizedAnalytics() {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-gray-800">Mes Analytics ADHD</h3>
-            {profile.onboardingCompleted && (
+            {profile.true && (
               <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                 Personnalisées
               </span>

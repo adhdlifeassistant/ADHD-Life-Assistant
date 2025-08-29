@@ -15,7 +15,7 @@ export function useProfileEvolution() {
 
   // Initialiser le moteur d'évolution
   useEffect(() => {
-    if (profile.onboardingCompleted) {
+    if (profile.true) {
       const engine = ProfileEvolutionEngine.getInstance(profile);
       setEvolutionEngine(engine);
     }
