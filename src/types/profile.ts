@@ -12,13 +12,12 @@ export interface UserProfile {
   // Défis ADHD
   challenges: ADHDChallenge[];
   
-  // Modules préférés (sélectionnés pendant l'onboarding)
+  // Modules préférés
   favoriteModules: string[];
   
   // Métadonnées
   createdAt: number;
   updatedAt: number;
-  onboardingCompleted: boolean;
 }
 
 export interface ProfileMedication {
@@ -144,20 +143,3 @@ export const MEDICATION_UNITS = {
 
 export type MedicationUnit = keyof typeof MEDICATION_UNITS;
 
-// Types pour l'onboarding
-export interface OnboardingStep {
-  id: number;
-  title: string;
-  component: React.ComponentType<OnboardingStepProps>;
-  isValid: (data: Partial<UserProfile>) => boolean;
-  isOptional?: boolean;
-}
-
-export interface OnboardingStepProps {
-  data: Partial<UserProfile>;
-  updateData: (updates: Partial<UserProfile>) => void;
-  onNext: () => void;
-  onPrevious: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}
