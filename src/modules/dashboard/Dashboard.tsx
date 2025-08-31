@@ -63,7 +63,7 @@ export default function Dashboard() {
     }
   }, []);
   
-  // Écouter l'événement d'ouverture des paramètres depuis la sidebar
+  // Écouter l'événement d'ouverture des paramètres
   React.useEffect(() => {
     const handleOpenSettings = () => setShowSettings(true);
     window.addEventListener('open-settings', handleOpenSettings);
@@ -202,66 +202,25 @@ export default function Dashboard() {
         // Vue grille complète pour l'accueil
         renderCurrentView()
       ) : (
-        // Vue normale pour les modules
-        <div className="flex h-screen">
-          {/* Bouton retour à l'accueil */}
-          <div className="fixed top-4 left-4 z-50">
+        // Vue épurée pour les modules
+        <div className="min-h-screen relative">
+          {/* Bouton Home flottant */}
+          <div className="fixed bottom-6 right-6 z-50">
             <button
               onClick={() => setView('home')}
-              className="p-3 bg-white/90 backdrop-blur-md rounded-adhd-lg shadow-lg hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
               aria-label="Retour à l'accueil"
               title="Retour à l'accueil"
             >
-              <span className="text-xl" role="img" aria-hidden="true">🏠</span>
-            </button>
-          </div>
-          
-          {/* Bouton paramètres */}
-          <div className="fixed top-4 right-4 z-50">
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-3 bg-white/90 backdrop-blur-md rounded-adhd-lg shadow-lg hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label="Ouvrir les paramètres"
-              title="Paramètres"
-            >
-              <span className="text-xl" role="img" aria-hidden="true">⚙️</span>
+              <span className="text-2xl" role="img" aria-hidden="true">🏠</span>
             </button>
           </div>
 
-          {/* Main content */}
-          <main 
-            id="main-content"
-            className="w-full flex flex-col overflow-hidden"
-            role="main"
-            aria-label="Contenu principal"
-          >
-            {/* Content area */}
-            <section 
-              className="flex-1 overflow-auto safe-area-inset-bottom pt-20"
-              aria-labelledby="current-view-title"
-            >
-              <div className="p-4 sm:p-6 lg:p-8 fade-in max-w-full">
-                <h2 id="current-view-title" className="sr-only">
-                  {(() => {
-                    switch (currentView) {
-                      case 'home': return 'Tableau de bord principal';
-                      case 'chat': return 'Chat avec Claude';
-                      case 'reminders': return 'Rappels médicaments';
-                      case 'cooking': return 'Cuisine adaptative';
-                      case 'checklists': return 'Checklists anti-oublis';
-                      case 'finance': return 'Finances ADHD';
-                      case 'cleaning': return 'Ménage ADHD';
-                      case 'health': return 'Suivi Santé ADHD';
-                      case 'analytics': return 'Analytics et insights';
-                      case 'tasks': return 'Module Tâches';
-                      case 'focus': return 'Module Focus';
-                      default: return 'Tableau de bord';
-                    }
-                  })()}
-                </h2>
-                {renderCurrentView()}
-              </div>
-            </section>
+          {/* Contenu principal */}
+          <main className="w-full min-h-screen pt-6 pb-24">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+              {renderCurrentView()}
+            </div>
           </main>
         </div>
       )}

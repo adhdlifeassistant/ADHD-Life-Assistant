@@ -101,7 +101,7 @@ export default function MainIconGrid({ onSettingsClick }: MainIconGridProps) {
     if (iconId === 'settings') {
       onSettingsClick?.();
     } else {
-      setView(iconId);
+      setView(iconId as any);
     }
   };
 

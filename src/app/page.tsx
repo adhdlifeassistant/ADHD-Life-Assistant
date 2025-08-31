@@ -1,6 +1,6 @@
 import MainIconGrid from '@/components/MainIconGrid';
 import { useMood, MOOD_CONFIG } from '@/modules/mood/MoodContext';
-import { getPersonalizedGreeting } from '@/lib/personalizedGreetings';
+import { useProfile } from '@/hooks/useProfile';
 import React from 'react';
 
 function MoodSelectorHeader() {
@@ -38,28 +38,39 @@ function MoodSelectorHeader() {
 
 export default function Home() {
   const { currentMood } = useMood();
-  const moodGreeting = getPersonalizedGreeting(currentMood, 'afternoon');
+  const { profile } = useProfile();
+  
+  const getTimeGreeting = () => {
+    const hour = new Date().getHours();
+    const name = profile.name || 'toi';
+    
+    if (hour < 12) return `Bonjour ${name}`;
+    if (hour < 17) return `Bon après-midi ${name}`;
+    return `Bonsoir ${name}`;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col">
       {/* Sélecteur de mood flottant */}
       <MoodSelectorHeader />
       
-      {/* Header principal */}
-      <div className="pt-20 pb-8 text-center">
-        <h1 className="text-4xl font-bold mb-4" style={{ color: 'var(--mood-text)' }}>
+      {/* Header principal épuré */}
+      <div className="pt-24 pb-12 text-center flex-shrink-0">
+        <h1 className="text-5xl md:text-6xl font-bold mb-6" style={{ color: 'var(--mood-text)' }}>
           ADHD Assistant
         </h1>
-        <p className="text-lg opacity-80 mb-2" style={{ color: 'var(--mood-text)' }}>
-          {moodGreeting}
+        <p className="text-xl md:text-2xl opacity-80 mb-2" style={{ color: 'var(--mood-text)' }}>
+          {getTimeGreeting()}
         </p>
-        <p className="text-base opacity-60" style={{ color: 'var(--mood-text)' }}>
+        <p className="text-lg opacity-60" style={{ color: 'var(--mood-text)' }}>
           Choisissez votre module
         </p>
       </div>
       
-      {/* Grille d'icônes principale */}
-      <MainIconGrid onSettingsClick={() => console.log('Settings clicked')} />
+      {/* Grille d'icônes optimisée */}
+      <div className="flex-1 flex items-center justify-center px-4 pb-12">
+        <MainIconGrid onSettingsClick={() => console.log('Settings clicked')} />
+      </div>
     </div>
   );
 }

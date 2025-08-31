@@ -108,13 +108,13 @@ export function SettingsInterface() {
               ))}
             </nav>
 
-            {/* Raccourci vers onboarding */}
+            {/* Retour à l'accueil */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <button
-                onClick={() => router.push('/onboarding')}
+                onClick={() => router.push('/')}
                 className="w-full p-3 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
-                🔄 Refaire l'onboarding
+                🏠 Retour à l'accueil
               </button>
             </div>
           </div>

@@ -106,8 +106,8 @@ export function DataSection() {
     clearProfile();
     resetSettings();
     setShowConfirmReset(false);
-    // Optionally redirect to onboarding
-    window.location.href = '/onboarding';
+    // Redirect to home
+    window.location.href = '/';
   };
 
   const formatFileSize = (bytes: number) => {
@@ -310,7 +310,7 @@ export function DataSection() {
                 <li>Tous les paramètres de l'application</li>
               </ul>
               <p className="text-sm text-red-700 font-medium">
-                Vous serez redirigé vers l'onboarding pour recommencer.
+                Vous serez redirigé vers l'accueil pour recommencer.
               </p>
             </div>
             
