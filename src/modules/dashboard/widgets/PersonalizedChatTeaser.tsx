@@ -20,7 +20,7 @@ export default function PersonalizedChatTeaser() {
     currentTime: new Date()
   };
 
-  const chatTeaser = profile.true 
+  const chatTeaser = profile.name 
     ? getPersonalizedChatTeaser(dashboardContext)
     : "Parle avec Claude, ton assistant IA adaptatif !";
 
@@ -39,7 +39,7 @@ export default function PersonalizedChatTeaser() {
             <h3 className="font-semibold text-gray-800">
               🤖 Chat {profile.name ? `avec ${profile.name}` : 'Claude'}
             </h3>
-            {profile.true && (
+            {profile.name && (
               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                 Personnalisé
               </span>
@@ -50,7 +50,7 @@ export default function PersonalizedChatTeaser() {
             {chatTeaser}
           </p>
           
-          {profile.true && (
+          {profile.name && (
             <div className="flex flex-wrap gap-1">
               {profile.challenges.slice(0, 3).map(challengeId => (
                 <span key={challengeId} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
