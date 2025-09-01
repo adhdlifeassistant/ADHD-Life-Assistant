@@ -1,0 +1,144 @@
+/* Privacy Mode Styles - Effets visuels pour protection données ADHD */
+
+.privacy-mode-active {
+  position: relative;
+}
+
+/* Flou automatique des données sensibles */
+.privacy-mode-active [data-sensitive="true"],
+.privacy-mode-active [data-medical="true"],
+.privacy-mode-active .mood-entry,
+.privacy-mode-active .medication-name,
+.privacy-mode-active .personal-note,
+.privacy-mode-active .symptom-description {
+  filter: blur(8px) !important;
+  transition: filter 0.3s ease;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Overlay de protection */
+#privacy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: privacyFadeIn 0.3s ease;
+}
+
+@keyframes privacyFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Indicateur mode privé */
+.privacy-indicator {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 9998;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Protection contre capture d'écran */
+body.screenshot-protection {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body.screenshot-protection * {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Avertissement session */
+.session-warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.session-warning-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 400px;
+  margin: 1rem;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* Effet de flou progressif pour timeout */
+.session-timeout-warning {
+  animation: warningPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes warningPulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(0.8) contrast(1.1); }
+}
+
+/* Mode sombre pour privacy */
+.privacy-mode-active.dark-theme {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Masquage notification sensible */
+.notification-hidden {
+  display: none !important;
+}
+
+/* Anti-forensic styles */
+.no-screenshot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.05) 10px,
+    rgba(255, 255, 255, 0.05) 20px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
