@@ -18,6 +18,10 @@ export abstract class BaseAuthProvider implements AuthProvider {
     return this._isAuthenticated;
   }
 
+  getAccessToken(): string | null {
+    return this._accessToken;
+  }
+
   protected createAuthError(code: string, message: string): AuthError {
     const userFriendlyMessages: Record<string, string> = {
       'popup_closed_by_user': 'Vous avez fermé la fenêtre de connexion. Réessayez quand vous êtes prêt·e 😊',
