@@ -137,7 +137,7 @@ export const useSecurity = () => {
 
   // Suppression RGPD
   const requestDataDeletion = useCallback(async (categories: string[] = ['all']) => {
-    const result = await gdprService.exerciseRightToErasure(categories[0] === 'all' ? [] : categories);
+    const result = await gdprService.exerciseRightToErasure(categories.includes('all') ? [] : categories);
     
     // Réinitialiser état si suppression complète
     if (categories.includes('all')) {
