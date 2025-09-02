@@ -1,129 +1,50 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChecklistTemplate, ActiveChecklist, ChecklistItem, ChecklistStats } from '@/types/checklists';
-import { getTemplateById } from '@/lib/checklistTemplates';
-import ChecklistSelector from './ChecklistSelector';
+import { ChecklistProvider, useChecklists } from './ChecklistContext';
+import { UserChecklistSelector } from './UserChecklistSelector';
 import InteractiveChecklist from './InteractiveChecklist';
 
 type ViewState = 'selector' | 'checklist' | 'completed';
 
-export default function ChecklistInterface() {
+function ChecklistInterfaceContent() {
+  const {
+    activeChecklist,
+    startChecklist,
+    toggleItem,
+    addCustomItem,
+    removeCustomItem,
+    completeChecklist,
+    resetChecklist,
+    getStats
+  } = useChecklists();
+  
   const [currentView, setCurrentView] = useState<ViewState>('selector');
-  const [activeChecklist, setActiveChecklist] = useState<ActiveChecklist | null>(null);
 
-  const startChecklist = (template: ChecklistTemplate) => {
-    const newChecklist: ActiveChecklist = {
-      id: Date.now().toString(),
-      templateId: template.id,
-      name: template.name,
-      type: template.type,
-      items: template.items.map(item => ({
-        ...item,
-        isChecked: false
-      })),
-      createdAt: Date.now(),
-      isCompleted: false,
-      customItems: []
-    };
-    
-    setActiveChecklist(newChecklist);
+  const handleStartChecklist = (checklistId: string) => {
+    startChecklist(checklistId);
     setCurrentView('checklist');
   };
 
-  const toggleItem = (itemId: string) => {
-    if (!activeChecklist) return;
-    
-    setActiveChecklist(prev => ({
-      ...prev!,
-      items: prev!.items.map(item =>
-        item.id === itemId ? { ...item, isChecked: !item.isChecked } : item
-      )
-    }));
-  };
-
-  const addCustomItem = (text: string, emoji: string) => {
-    if (!activeChecklist) return;
-    
-    const newItem: ChecklistItem = {
-      id: `custom-${Date.now()}`,
-      text,
-      emoji,
-      isChecked: false,
-      isRequired: false,
-      isCustom: true
-    };
-    
-    setActiveChecklist(prev => ({
-      ...prev!,
-      items: [...prev!.items, newItem]
-    }));
-  };
-
-  const removeCustomItem = (itemId: string) => {
-    if (!activeChecklist) return;
-    
-    setActiveChecklist(prev => ({
-      ...prev!,
-      items: prev!.items.filter(item => item.id !== itemId)
-    }));
-  };
-
-  const completeChecklist = () => {
-    if (!activeChecklist) return;
-    
-    setActiveChecklist(prev => ({
-      ...prev!,
-      isCompleted: true,
-      completedAt: Date.now()
-    }));
-    
+  const handleCompleteChecklist = () => {
+    completeChecklist();
     setCurrentView('completed');
     
     // Auto-reset après 5 secondes
     setTimeout(() => {
-      resetChecklist();
+      handleResetChecklist();
     }, 5000);
   };
 
-  const resetChecklist = () => {
-    setActiveChecklist(null);
+  const handleResetChecklist = () => {
+    resetChecklist();
     setCurrentView('selector');
-  };
-
-  const getStats = (): ChecklistStats => {
-    if (!activeChecklist) {
-      return {
-        totalItems: 0,
-        checkedItems: 0,
-        requiredItems: 0,
-        checkedRequiredItems: 0,
-        progressPercentage: 0,
-        isReadyToGo: false
-      };
-    }
-
-    const totalItems = activeChecklist.items.length;
-    const checkedItems = activeChecklist.items.filter(item => item.isChecked).length;
-    const requiredItems = activeChecklist.items.filter(item => item.isRequired).length;
-    const checkedRequiredItems = activeChecklist.items.filter(item => item.isRequired && item.isChecked).length;
-    const progressPercentage = totalItems > 0 ? (checkedItems / totalItems) * 100 : 0;
-    const isReadyToGo = requiredItems === checkedRequiredItems;
-
-    return {
-      totalItems,
-      checkedItems,
-      requiredItems,
-      checkedRequiredItems,
-      progressPercentage,
-      isReadyToGo
-    };
   };
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'selector':
-        return <ChecklistSelector onTemplateSelect={startChecklist} />;
+        return <UserChecklistSelector onChecklistSelect={handleStartChecklist} />;
 
       case 'checklist':
         return activeChecklist ? (
@@ -132,8 +53,8 @@ export default function ChecklistInterface() {
             onToggleItem={toggleItem}
             onAddCustomItem={addCustomItem}
             onRemoveCustomItem={removeCustomItem}
-            onComplete={completeChecklist}
-            onBack={resetChecklist}
+            onComplete={handleCompleteChecklist}
+            onBack={handleResetChecklist}
             stats={getStats()}
           />
         ) : null;
@@ -184,7 +105,7 @@ export default function ChecklistInterface() {
             </div>
 
             <button
-              onClick={resetChecklist}
+              onClick={handleResetChecklist}
               className="px-6 py-3 rounded-xl font-medium transition-colors"
               style={{ backgroundColor: 'var(--mood-primary)', color: 'white' }}
             >
@@ -206,5 +127,13 @@ export default function ChecklistInterface() {
     <div className="w-full max-w-6xl mx-auto">
       {renderCurrentView()}
     </div>
+  );
+}
+
+export default function ChecklistInterface() {
+  return (
+    <ChecklistProvider>
+      <ChecklistInterfaceContent />
+    </ChecklistProvider>
   );
 }
