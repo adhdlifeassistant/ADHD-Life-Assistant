@@ -62,7 +62,7 @@ export class EncryptionService {
     const derivedKey = await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
-        salt: keyDerivationSalt.buffer.slice(0),
+        salt: keyDerivationSalt.buffer.slice(0) as ArrayBuffer,
         iterations: this.PBKDF2_ITERATIONS,
         hash: 'SHA-256'
       },
@@ -237,7 +237,7 @@ export class EncryptionService {
 
     } catch (error) {
       this.logSecurityEvent('authentication_failed', { 
-        error: error.message,
+        error: (error as Error).message,
         timestamp: Date.now() 
       });
       
@@ -281,7 +281,7 @@ export class EncryptionService {
 
     } catch (error) {
       this.logSecurityEvent('master_password_setup_failed', { 
-        error: error.message 
+        error: (error as Error).message 
       });
       throw error;
     }
@@ -345,7 +345,7 @@ export class EncryptionService {
     } catch (error) {
       this.logSecurityEvent('data_load_failed', { 
         key, 
-        error: error.message 
+        error: (error as Error).message 
       });
       return null;
     }
