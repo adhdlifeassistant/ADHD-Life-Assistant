@@ -66,11 +66,42 @@ export default function Dashboard() {
   // Écouter l'événement d'ouverture des paramètres
   React.useEffect(() => {
     const handleOpenSettings = () => {
+      console.log('🚨 DEBUG: Événement open-settings reçu');
       console.log('📱 Navigation vers page paramètres avec sections stockage');
       router.push('/settings');
     };
+    
+    // Debug pour vérifier si l'événement fonctionne
+    const testEvent = () => {
+      console.log('🧪 TEST: Event listener attaché correctement');
+    };
+    
     window.addEventListener('open-settings', handleOpenSettings);
-    return () => window.removeEventListener('open-settings', handleOpenSettings);
+    window.addEventListener('test-event', testEvent);
+    
+    // Test immédiat pour vérifier que le listener fonctionne
+    setTimeout(() => {
+      console.log('🔍 Test du système d\'événements...');
+      window.dispatchEvent(new CustomEvent('test-event'));
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('open-settings', handleOpenSettings);
+      window.removeEventListener('test-event', testEvent);
+    };
+  }, [router]);
+
+  // Méthode alternative directe pour les paramètres
+  React.useEffect(() => {
+    // Exposer une fonction globale pour forcer la navigation
+    (window as any).forceNavigateToSettings = () => {
+      console.log('🎯 FORCE: Navigation directe vers paramètres');
+      router.push('/settings');
+    };
+    
+    return () => {
+      delete (window as any).forceNavigateToSettings;
+    };
   }, [router]);
 
 
