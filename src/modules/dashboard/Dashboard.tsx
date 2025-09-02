@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useDashboard } from './DashboardContext';
 import GridHome from '@/components/GridHome';
 import DashboardHome from './DashboardHome';
@@ -12,7 +13,6 @@ import { FinanceInterface } from '@/modules/finance/FinanceInterface';
 import { CleaningInterface } from '@/modules/cleaning/CleaningInterface';
 import { HealthInterface } from '@/modules/health/HealthInterface';
 import { AnalyticsInterface } from '@/modules/analytics/AnalyticsInterface';
-import { Settings } from '@/components/Settings';
 import { ContextualHelp, useKeyboardShortcuts } from '@/components/ContextualHelp';
 import { keyboardNavService } from '@/lib/keyboardNavigation';
 
@@ -46,8 +46,8 @@ function FocusModule() {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const { currentView, setView } = useDashboard();
-  const [showSettings, setShowSettings] = React.useState(false);
   
   // Raccourcis clavier
   useKeyboardShortcuts();
@@ -65,16 +65,19 @@ export default function Dashboard() {
   
   // Écouter l'événement d'ouverture des paramètres
   React.useEffect(() => {
-    const handleOpenSettings = () => setShowSettings(true);
+    const handleOpenSettings = () => {
+      console.log('📱 Navigation vers page paramètres avec sections stockage');
+      router.push('/settings');
+    };
     window.addEventListener('open-settings', handleOpenSettings);
     return () => window.removeEventListener('open-settings', handleOpenSettings);
-  }, []);
+  }, [router]);
 
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'home':
-        return <GridHome onSettingsClick={() => setShowSettings(true)} />;
+        return <GridHome onSettingsClick={() => router.push('/settings')} />;
       case 'chat':
         return (
           <div className="max-w-4xl mx-auto">
@@ -225,8 +228,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Modals et overlays */}
-      <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      {/* Overlays */}
       <ContextualHelp />
     </div>
   );
