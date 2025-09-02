@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAppSettings } from '@/hooks/useAppSettings';
+import { GoogleAuthProvider } from '@/lib/auth/GoogleAuthProvider';
+import { SyncManager } from '@/lib/sync/SyncManager';
+import { DriveService } from '@/lib/sync/DriveService';
 
 export function DataSection() {
   const { profile, clearProfile, importProfile } = useProfile();
@@ -10,12 +13,80 @@ export function DataSection() {
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
-  // États pour le stockage cloud
+  // Services réels d'authentification et de synchronisation
+  const [authProvider] = useState(() => new GoogleAuthProvider());
+  const [syncManager] = useState(() => SyncManager.getInstance());
+  const [driveService] = useState(() => new DriveService(authProvider));
+  
+  // États réels pour le stockage cloud
   const [isConnectedToCloud, setIsConnectedToCloud] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(new Date(Date.now() - 5 * 60 * 1000)); // Il y a 5 minutes
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
   const [autoSync, setAutoSync] = useState(true);
   const [autoBackup, setAutoBackup] = useState(true);
-  const [cloudAccount, setCloudAccount] = useState('utilisateur@gmail.com');
+  const [cloudAccount, setCloudAccount] = useState<string | null>(null);
+  const [storageUsage, setStorageUsage] = useState({ used: 0, limit: 15000000000 }); // 15GB par défaut
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [recentExports, setRecentExports] = useState<string[]>([]);
+
+  // Initialisation et vérification de l'état d'authentification
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Vérifier si l'utilisateur était déjà connecté
+        const isRestored = authProvider.restoreSession();
+        if (isRestored) {
+          const user = await authProvider.getCurrentUser();
+          if (user) {
+            setIsConnectedToCloud(true);
+            setCloudAccount(user.email);
+            
+            // Récupérer l'usage du stockage
+            try {
+              const usage = await driveService.getStorageUsage();
+              setStorageUsage(usage);
+            } catch (error) {
+              console.warn('Impossible de récupérer l\'usage du stockage:', error);
+            }
+          }
+        }
+
+        // Récupérer le statut de sync
+        const syncStatus = syncManager.getStatus();
+        setLastSync(syncStatus.lastSync ? new Date(syncStatus.lastSync) : null);
+        setIsSyncing(syncStatus.isSyncing);
+
+        // Charger la liste des exports récents depuis localStorage
+        const savedExports = localStorage.getItem('medical_reports_history');
+        if (savedExports) {
+          setRecentExports(JSON.parse(savedExports));
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        setSyncError('Erreur lors de l\'initialisation des services cloud');
+      }
+    };
+
+    initializeAuth();
+
+    // Écouter les changements de statut de sync
+    const handleSyncStatusChange = (status: any) => {
+      setIsSyncing(status.isSyncing);
+      setLastSync(status.lastSync ? new Date(status.lastSync) : null);
+      if (status.status === 'error') {
+        setSyncError('Erreur de synchronisation');
+      } else {
+        setSyncError(null);
+      }
+    };
+
+    syncManager.onStatusChange(handleSyncStatusChange);
+
+    return () => {
+      // Cleanup si nécessaire
+    };
+  }, [authProvider, driveService, syncManager]);
 
   const handleExportProfile = () => {
     const profileData = JSON.stringify(profile, null, 2);
@@ -134,24 +205,101 @@ export function DataSection() {
 
   const dataSize = getDataSize();
 
-  // Fonctions pour les nouvelles sections
-  const handleConnectToCloud = () => {
-    setIsConnectedToCloud(!isConnectedToCloud);
-    if (!isConnectedToCloud) {
-      setLastSync(new Date());
+  // Fonctions réelles pour l'authentification et la synchronisation
+  const handleConnectToCloud = async () => {
+    if (isConnectedToCloud) {
+      // Déconnexion
+      try {
+        await authProvider.signOut();
+        setIsConnectedToCloud(false);
+        setCloudAccount(null);
+        setStorageUsage({ used: 0, limit: 15000000000 });
+        setSyncError(null);
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+        setSyncError('Erreur lors de la déconnexion');
+      }
+    } else {
+      // Connexion OAuth Google
+      setIsConnecting(true);
+      setSyncError(null);
+      try {
+        const user = await authProvider.signIn();
+        setIsConnectedToCloud(true);
+        setCloudAccount(user.email);
+        
+        // Récupérer l'usage du stockage après connexion
+        const usage = await driveService.getStorageUsage();
+        setStorageUsage(usage);
+        
+        // Synchroniser automatiquement après connexion
+        syncManager.forceSync();
+        
+      } catch (error: any) {
+        console.error('Erreur lors de la connexion:', error);
+        setSyncError(`Erreur de connexion: ${error.message || 'Connexion échouée'}`);
+      } finally {
+        setIsConnecting(false);
+      }
     }
   };
 
-  const handleSyncNow = () => {
-    setLastSync(new Date());
+  const handleSyncNow = async () => {
+    if (!isConnectedToCloud) {
+      setSyncError('Veuillez vous connecter à Google Drive d\'abord');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncError(null);
+    
+    try {
+      // Ajouter les données de profil et paramètres à la queue de sync
+      syncManager.addOperation({
+        type: 'upload',
+        module: 'profile',
+        data: profile,
+        maxRetries: 3
+      });
+      
+      syncManager.addOperation({
+        type: 'upload',
+        module: 'settings',
+        data: settings,
+        maxRetries: 3
+      });
+
+      // Forcer la synchronisation
+      syncManager.forceSync();
+      
+      // La mise à jour de l'état se fera via le callback onStatusChange
+    } catch (error: any) {
+      console.error('Erreur lors de la synchronisation:', error);
+      setSyncError(`Erreur de synchronisation: ${error.message}`);
+      setIsSyncing(false);
+    }
   };
 
   const handleViewCloudData = () => {
-    window.open('https://drive.google.com/drive/folders/adhd-life-assistant', '_blank');
+    // Ouvrir l'interface Google Drive avec recherche pour les fichiers ADHD
+    const driveUrl = 'https://drive.google.com/drive/search?q=adhd_';
+    window.open(driveUrl, '_blank');
   };
 
-  const handleCleanOldBackups = () => {
-    alert('Anciens backups supprimés (simulation)');
+  const handleCleanOldBackups = async () => {
+    if (!isConnectedToCloud) {
+      setSyncError('Veuillez vous connecter à Google Drive d\'abord');
+      return;
+    }
+
+    try {
+      // Cette fonctionnalité est automatiquement gérée par DriveService.cleanupOldFiles()
+      // On va juste informer l'utilisateur
+      alert('✅ Les anciens backups sont automatiquement nettoyés.\nSeuls les 5 fichiers les plus récents de chaque module sont conservés.');
+    } catch (error: any) {
+      console.error('Erreur lors du nettoyage:', error);
+      setSyncError(`Erreur de nettoyage: ${error.message}`);
+    }
   };
 
   const handleGenerateMedicalReport = () => {
@@ -178,18 +326,26 @@ ${medicalData.challenges.map(challenge => `- ${challenge}`).join('\n') || '- Auc
 
 CHRONOTYPE: ${medicalData.chronotype}
 
-Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
+Ce rapport a été généré automatiquement par ADHD Life Assistant.
+Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assistant`;
 
+    const fileName = `rapport-medical-adhd-${new Date().toISOString().split('T')[0]}.txt`;
     const blob = new Blob([reportContent], { type: 'text/plain; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rapport-medical-adhd-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // Ajouter à l'historique des exports
+    const newExport = fileName;
+    const updatedExports = [newExport, ...recentExports.slice(0, 2)]; // Garder les 3 plus récents
+    setRecentExports(updatedExports);
+    localStorage.setItem('medical_reports_history', JSON.stringify(updatedExports));
   };
 
   const handleShareByEmail = () => {
@@ -199,13 +355,28 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
   };
 
   const getCloudSpaceUsed = () => {
+    // Utiliser les vraies données de Google Drive si disponibles
+    if (storageUsage.used > 0) {
+      return (storageUsage.used / (1024 * 1024)).toFixed(1);
+    }
+    
+    // Fallback: calculer la taille approximative des données locales
     const totalSize = new Blob([JSON.stringify({ profile, settings })]).size;
     const mbUsed = (totalSize / (1024 * 1024)).toFixed(1);
     return mbUsed;
   };
 
+  const getCloudSpaceLimit = () => {
+    if (storageUsage.limit > 0) {
+      return (storageUsage.limit / (1024 * 1024 * 1024)).toFixed(1);
+    }
+    return '15.0'; // 15GB par défaut
+  };
+
   const formatLastSync = () => {
+    if (isSyncing) return 'Synchronisation en cours...';
     if (!lastSync) return 'Jamais synchronisé';
+    
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - lastSync.getTime()) / (1000 * 60));
     
@@ -226,6 +397,22 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
         <p className="text-gray-600">Synchronisation cloud, exports médicaux et sauvegarde de vos données</p>
       </div>
 
+      {/* Message d'erreur global */}
+      {syncError && (
+        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-red-600">⚠️</span>
+            <div className="text-red-800 text-sm font-medium">{syncError}</div>
+            <button
+              onClick={() => setSyncError(null)}
+              className="ml-auto text-red-400 hover:text-red-600"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 🔗 SECTION "Connexion & Stockage" */}
       <div className="bg-blue-50 p-6 rounded-xl">
         <h3 className="text-lg font-semibold text-blue-800 mb-4">🔗 Connexion & Stockage</h3>
@@ -238,20 +425,24 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
                 <div className="font-medium text-gray-800">
                   {isConnectedToCloud ? 'Connecté à Google Drive' : 'Non connecté'}
                 </div>
-                {isConnectedToCloud && (
+                {isConnectedToCloud && cloudAccount && (
                   <div className="text-sm text-gray-600">{cloudAccount}</div>
+                )}
+                {isConnecting && (
+                  <div className="text-sm text-blue-600">Connexion en cours...</div>
                 )}
               </div>
             </div>
             <button
               onClick={handleConnectToCloud}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              disabled={isConnecting}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isConnectedToCloud
                   ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
-              {isConnectedToCloud ? 'Changer de compte' : 'Se connecter'}
+              {isConnecting ? '🔄 Connexion...' : isConnectedToCloud ? 'Se déconnecter' : 'Se connecter'}
             </button>
           </div>
 
@@ -262,9 +453,10 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
               {isConnectedToCloud && (
                 <button
                   onClick={handleSyncNow}
-                  className="mt-2 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  disabled={isSyncing}
+                  className="mt-2 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Synchroniser maintenant
+                  {isSyncing ? '🔄 Sync...' : 'Synchroniser maintenant'}
                 </button>
               )}
             </div>
@@ -301,7 +493,7 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
               <div>
                 <div className="font-medium text-gray-800">Espace utilisé</div>
                 <div className="text-sm text-gray-600">
-                  {getCloudSpaceUsed()} MB / 15 GB disponibles
+                  {getCloudSpaceUsed()} MB / {getCloudSpaceLimit()} GB disponibles
                 </div>
               </div>
               <div className="text-2xl text-green-600">📊</div>
@@ -309,7 +501,9 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-green-500 h-2 rounded-full"
-                style={{ width: `${(parseFloat(getCloudSpaceUsed()) / 15000) * 100}%` }}
+                style={{ 
+                  width: `${Math.min(100, (parseFloat(getCloudSpaceUsed()) / (parseFloat(getCloudSpaceLimit()) * 1000)) * 100)}%`
+                }}
               ></div>
             </div>
           </div>
@@ -381,9 +575,13 @@ Ce rapport a été généré automatiquement par ADHD Life Assistant.`;
             <div className="p-4 bg-white rounded-lg border border-purple-200">
               <div className="text-sm text-purple-700 font-medium mb-2">Derniers exports :</div>
               <div className="space-y-1 text-sm text-gray-600">
-                <div>• rapport-medical-adhd-2024-12-15.txt</div>
-                <div>• rapport-medical-adhd-2024-12-01.txt</div>
-                <div>• rapport-medical-adhd-2024-11-20.txt</div>
+                {recentExports.length > 0 ? (
+                  recentExports.map((exportFile, index) => (
+                    <div key={index}>• {exportFile}</div>
+                  ))
+                ) : (
+                  <div className="text-gray-400 italic">Aucun export récent</div>
+                )}
               </div>
             </div>
 
