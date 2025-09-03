@@ -9,168 +9,195 @@ export class GoogleAuthProvider extends BaseAuthProvider {
     this.clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
     
     if (typeof window !== 'undefined') {
-      this.initializeGoogleAuth();
+      this.handleOAuthCallback();
     }
   }
 
-  private async initializeGoogleAuth() {
-    try {
-      // Charger le SDK Google Identity Services
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      document.head.appendChild(script);
+  private handleOAuthCallback() {
+    // Vérifier si on revient d'OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const error = urlParams.get('error');
 
-      await new Promise((resolve) => {
-        script.onload = resolve;
+    if (error) {
+      console.error('OAuth error:', error);
+      this.handleOAuthError(error);
+      return;
+    }
+
+    if (code && state) {
+      console.log('🔍 DEBUG: OAuth callback detected with code:', code);
+      this.exchangeCodeForToken(code, state);
+    }
+  }
+
+  private handleOAuthError(error: string) {
+    const errorMessages: { [key: string]: string } = {
+      'access_denied': 'Connexion annulée par l\'utilisateur',
+      'invalid_request': 'Requête OAuth invalide',
+      'unsupported_response_type': 'Configuration OAuth incorrecte',
+      'invalid_scope': 'Permissions demandées invalides',
+      'server_error': 'Erreur serveur Google temporaire',
+      'temporarily_unavailable': 'Service Google temporairement indisponible'
+    };
+
+    const userMessage = errorMessages[error] || 'Erreur de connexion Google';
+    console.error('OAuth Error:', userMessage);
+    
+    // Nettoyer l'URL et rediriger vers la page auth avec erreur
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    // Stocker l'erreur pour l'affichage
+    localStorage.setItem('oauth_error', userMessage);
+    
+    if (window.location.pathname !== '/auth') {
+      window.location.href = '/auth';
+    }
+  }
+
+  private async exchangeCodeForToken(code: string, state: string) {
+    try {
+      console.log('🔍 DEBUG: Exchanging code for token');
+      
+      // Vérifier le state pour la sécurité
+      const storedState = localStorage.getItem('oauth_state');
+      if (state !== storedState) {
+        throw new Error('État OAuth invalide - possible attaque CSRF');
+      }
+
+      const response = await fetch('/api/auth/callback/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          redirect_uri: this.getRedirectUri()
+        })
       });
 
-      // Initialiser Google Identity Services
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: this.clientId,
-          callback: this.handleCredentialResponse.bind(this)
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de l\'échange du code');
       }
-    } catch (error) {
-      console.error('Erreur lors de l\'initialisation de Google Auth:', error);
-    }
-  }
 
-  private async handleCredentialResponse(response: any) {
-    try {
-      const credential = response.credential;
-      const decoded = JSON.parse(atob(credential.split('.')[1]));
-      
+      const data = await response.json();
       const user: User = {
-        id: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        picture: decoded.picture,
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        picture: data.user.picture,
         provider: 'google'
       };
 
       this._currentUser = user;
       this._isAuthenticated = true;
-      this._accessToken = credential;
+      this._accessToken = data.access_token;
+      this._refreshToken = data.refresh_token;
 
+      // Sauvegarder dans localStorage
       localStorage.setItem('auth_user', JSON.stringify(user));
-      localStorage.setItem('auth_token', credential);
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_refresh_token', data.refresh_token || '');
       localStorage.setItem('auth_provider', 'google');
+      
+      // Nettoyer les données temporaires
+      localStorage.removeItem('oauth_state');
+      localStorage.removeItem('oauth_error');
+
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      console.log('🔍 DEBUG: Authentication successful, redirecting...');
+      
+      // Rediriger vers la page d'origine ou l'accueil
+      const returnUrl = localStorage.getItem('oauth_return_url') || '/';
+      localStorage.removeItem('oauth_return_url');
+      window.location.href = returnUrl;
 
     } catch (error) {
-      throw this.handleError(error);
+      console.error('Token exchange error:', error);
+      this.handleOAuthError('server_error');
     }
+  }
+
+  private getRedirectUri(): string {
+    return `${window.location.origin}/auth`;
+  }
+
+  private generateOAuthUrl(): string {
+    const state = this.generateRandomString(32);
+    localStorage.setItem('oauth_state', state);
+    localStorage.setItem('oauth_return_url', window.location.pathname);
+
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.getRedirectUri(),
+      response_type: 'code',
+      scope: 'openid email profile',
+      state,
+      access_type: 'offline',
+      prompt: 'consent'
+    });
+
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log('🔍 DEBUG: Generated OAuth URL:', oauthUrl);
+    console.log('🎯 REDIRECT_URI UTILISÉ:', this.getRedirectUri());
+    
+    return oauthUrl;
+  }
+
+  private generateRandomString(length: number): string {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return result;
   }
 
   async signIn(): Promise<User> {
     return new Promise((resolve, reject) => {
       try {
-        if (!window.google) {
-          throw new Error('Google SDK non chargé');
+        console.log('🔍 DEBUG: Starting Google OAuth redirect flow');
+        console.log('🔍 DEBUG: Client ID:', this.clientId);
+        console.log('🔍 DEBUG: Redirect URI:', this.getRedirectUri());
+
+        // Vérifier si on a déjà une session active
+        if (this._isAuthenticated && this._currentUser) {
+          console.log('🔍 DEBUG: Already authenticated, returning current user');
+          resolve(this._currentUser);
+          return;
         }
 
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback vers popup si la promesse native ne fonctionne pas
-            this.signInWithPopup().then(resolve).catch(reject);
-          }
-        });
-
-        // Timeout pour éviter d'attendre indéfiniment
+        const oauthUrl = this.generateOAuthUrl();
+        
+        // Stocker les callbacks pour après la redirection
+        localStorage.setItem('oauth_pending', 'true');
+        
+        console.log('🔍 DEBUG: Redirecting to Google OAuth...');
+        
+        // Redirection complète vers Google OAuth
+        window.location.href = oauthUrl;
+        
+        // Cette partie ne s'exécutera pas car on redirige
+        // mais on la garde pour la compatibilité avec l'interface
         setTimeout(() => {
           if (!this._isAuthenticated) {
-            this.signInWithPopup().then(resolve).catch(reject);
+            reject(new Error('Timeout - redirection OAuth'));
           }
-        }, 3000);
-
-        // Écouter les changements d'état d'authentification
-        const checkAuth = () => {
-          if (this._isAuthenticated && this._currentUser) {
-            resolve(this._currentUser);
-          }
-        };
-
-        const interval = setInterval(() => {
-          checkAuth();
-          if (this._isAuthenticated) {
-            clearInterval(interval);
-          }
-        }, 100);
-
-        // Nettoyer après 10 secondes
-        setTimeout(() => {
-          clearInterval(interval);
-        }, 10000);
+        }, 1000);
 
       } catch (error) {
+        console.error('Sign in error:', error);
         reject(this.handleError(error));
       }
     });
-  }
-
-  private async signInWithPopup(): Promise<User> {
-    return new Promise((resolve, reject) => {
-      try {
-        if (!window.google) {
-          throw new Error('Google SDK non chargé');
-        }
-
-        const client = window.google.accounts.oauth2.initTokenClient({
-          client_id: this.clientId,
-          scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          callback: async (tokenResponse: any) => {
-            try {
-              const userInfo = await this.fetchUserInfo(tokenResponse.access_token);
-              const user: User = {
-                id: userInfo.id,
-                email: userInfo.email,
-                name: userInfo.name,
-                picture: userInfo.picture,
-                provider: 'google'
-              };
-
-              this._currentUser = user;
-              this._isAuthenticated = true;
-              this._accessToken = tokenResponse.access_token;
-              this._refreshToken = tokenResponse.refresh_token;
-
-              localStorage.setItem('auth_user', JSON.stringify(user));
-              localStorage.setItem('auth_token', tokenResponse.access_token);
-              localStorage.setItem('auth_refresh_token', tokenResponse.refresh_token || '');
-              localStorage.setItem('auth_provider', 'google');
-
-              resolve(user);
-            } catch (error) {
-              reject(this.handleError(error));
-            }
-          },
-          error_callback: (error: any) => {
-            reject(this.handleError(error));
-          }
-        });
-
-        client.requestAccessToken();
-      } catch (error) {
-        reject(this.handleError(error));
-      }
-    });
-  }
-
-  private async fetchUserInfo(accessToken: string): Promise<any> {
-    const response = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des informations utilisateur');
-    }
-    return response.json();
   }
 
   async signOut(): Promise<void> {
     try {
-      if (window.google) {
-        window.google.accounts.id.disableAutoSelect();
-      }
-
       this._currentUser = null;
       this._isAuthenticated = false;
       this._accessToken = null;
@@ -180,6 +207,9 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_refresh_token');
       localStorage.removeItem('auth_provider');
+      localStorage.removeItem('oauth_state');
+      localStorage.removeItem('oauth_return_url');
+      localStorage.removeItem('oauth_pending');
 
     } catch (error) {
       throw this.handleError(error);
@@ -192,16 +222,14 @@ export class GoogleAuthProvider extends BaseAuthProvider {
         throw new Error('Pas de refresh token disponible');
       }
 
-      const response = await fetch('https://oauth2.googleapis.com/token', {
+      const response = await fetch('/api/auth/refresh/google', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          client_id: this.clientId,
-          refresh_token: this._refreshToken,
-          grant_type: 'refresh_token',
-        }),
+        body: JSON.stringify({
+          refresh_token: this._refreshToken
+        })
       });
 
       if (!response.ok) {
@@ -240,23 +268,5 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       console.error('Erreur lors de la restauration de session:', error);
       return false;
     }
-  }
-}
-
-// Déclarations TypeScript pour les APIs Google
-declare global {
-  interface Window {
-    google: {
-      accounts: {
-        id: {
-          initialize: (config: any) => void;
-          prompt: (callback?: (notification: any) => void) => void;
-          disableAutoSelect: () => void;
-        };
-        oauth2: {
-          initTokenClient: (config: any) => any;
-        };
-      };
-    };
   }
 }

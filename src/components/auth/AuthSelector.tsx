@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as React from 'react';
 import { AuthProviderType } from '@/types/auth';
 
 interface AuthSelectorProps {
@@ -11,6 +12,16 @@ interface AuthSelectorProps {
 
 export default function AuthSelector({ onProviderSelect, isLoading, error }: AuthSelectorProps) {
   const [selectedProvider, setSelectedProvider] = useState<AuthProviderType | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+
+  // Vérifier les erreurs OAuth au chargement
+  React.useEffect(() => {
+    const storedOauthError = localStorage.getItem('oauth_error');
+    if (storedOauthError) {
+      setOauthError(storedOauthError);
+      localStorage.removeItem('oauth_error');
+    }
+  }, []);
 
   const handleProviderClick = async (provider: AuthProviderType) => {
     setSelectedProvider(provider);
@@ -74,16 +85,24 @@ export default function AuthSelector({ onProviderSelect, isLoading, error }: Aut
       </div>
 
       {/* Message d'erreur bienveillant */}
-      {error && (
+      {(error || oauthError) && (
         <div className="mb-6 p-4 bg-red-50 border-2 border-red-100 rounded-2xl">
           <div className="flex items-start">
             <svg className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-red-700 text-sm leading-relaxed">
-              {error}
+              {oauthError || error}
             </p>
           </div>
+          {oauthError && (
+            <button
+              onClick={() => setOauthError(null)}
+              className="mt-3 text-xs text-red-600 hover:text-red-800 underline"
+            >
+              Réessayer
+            </button>
+          )}
         </div>
       )}
 
