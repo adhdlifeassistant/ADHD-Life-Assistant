@@ -11,6 +11,7 @@ import { AnalyticsProvider } from "@/modules/analytics/AnalyticsContext";
 import { AuthProvider } from "@/modules/auth/AuthContext";
 import ThemeProvider from "@/components/ui/ThemeProvider";
 import AuthErrorBoundary from "@/components/auth/ErrorBoundary";
+import PasswordProtection from "@/components/auth/PasswordProtection";
 import PWAInstall from "@/components/PWAInstall";
 
 const geistSans = Geist({
@@ -90,26 +91,28 @@ export default function RootLayout({
         ></div>
 
         <AuthErrorBoundary>
-          <AuthProvider>
-            <MoodProvider>
-              <ReminderProvider>
-                <FinanceProvider>
-                  <CleaningProvider>
-                    <HealthProvider>
-                      <AnalyticsProvider>
-                        <DashboardProvider>
-                          <ThemeProvider>
-                            {children}
-                            <PWAInstall />
-                          </ThemeProvider>
-                        </DashboardProvider>
-                      </AnalyticsProvider>
-                    </HealthProvider>
-                  </CleaningProvider>
-                </FinanceProvider>
-              </ReminderProvider>
-            </MoodProvider>
-          </AuthProvider>
+          <PasswordProtection>
+            <AuthProvider>
+              <MoodProvider>
+                <ReminderProvider>
+                  <FinanceProvider>
+                    <CleaningProvider>
+                      <HealthProvider>
+                        <AnalyticsProvider>
+                          <DashboardProvider>
+                            <ThemeProvider>
+                              {children}
+                              <PWAInstall />
+                            </ThemeProvider>
+                          </DashboardProvider>
+                        </AnalyticsProvider>
+                      </HealthProvider>
+                    </CleaningProvider>
+                  </FinanceProvider>
+                </ReminderProvider>
+              </MoodProvider>
+            </AuthProvider>
+          </PasswordProtection>
         </AuthErrorBoundary>
       </body>
     </html>
