@@ -12,7 +12,7 @@ export default function PasswordProtection({ children }: PasswordProtectionProps
   const [error, setError] = useState('');
 
   // Hash simple pour obfusquer le mot de passe
-  const EXPECTED_HASH = 'a8f5f167f44f4964e6c998dee827110c'; // MD5 de "fYnkUShy513ZNF"
+  const EXPECTED_HASH = 'ad60e303b9d18f9936dfd9613d095030'; // MD5 de "fYnkUShy513ZNF"
   
   useEffect(() => {
     // Vérifier si déjà connecté dans cette session
@@ -27,6 +27,10 @@ export default function PasswordProtection({ children }: PasswordProtectionProps
   const handleLogin = (password: string) => {
     // Simple hash MD5 côté client (pour obfuscation basique)
     const hash = require('crypto-js/md5')(password).toString();
+    
+    // Debug: afficher les hashs pour vérification
+    console.log('Hash saisi:', hash);
+    console.log('Hash attendu:', EXPECTED_HASH);
     
     if (hash === EXPECTED_HASH) {
       setIsAuthenticated(true);
