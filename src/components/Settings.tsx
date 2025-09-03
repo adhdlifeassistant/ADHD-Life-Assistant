@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useMood } from '@/modules/mood/MoodContext';
 import { ProfileSettings } from './ProfileSettings';
 import { keyboardNavService } from '@/lib/keyboardNavigation';
+import { AISettings, AIProvider } from '@/types/settings';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -22,6 +23,16 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
     userName: ''
   });
 
+  const [aiSettings, setAiSettings] = useState<AISettings>({
+    provider: undefined,
+    apiKey: '',
+    isConnected: false,
+    lastTested: undefined
+  });
+
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<string | null>(null);
+
   const moodConfig = getMoodConfig();
 
   useEffect(() => {
@@ -35,6 +46,15 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       userName: localStorage.getItem('adhd-assistant-username') || ''
     };
     setSettings(savedSettings);
+    
+    // Charger les paramètres IA
+    const savedAiSettings: AISettings = {
+      provider: (localStorage.getItem('adhd-ai-provider') as AIProvider) || undefined,
+      apiKey: localStorage.getItem('adhd-ai-apikey') || '',
+      isConnected: localStorage.getItem('adhd-ai-connected') === 'true',
+      lastTested: localStorage.getItem('adhd-ai-last-tested') ? parseInt(localStorage.getItem('adhd-ai-last-tested')!) : undefined
+    };
+    setAiSettings(savedAiSettings);
     
     // Appliquer la taille de texte
     document.documentElement.classList.remove('text-size-sm', 'text-size-base', 'text-size-lg', 'text-size-xl');
@@ -150,6 +170,80 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       }
     };
     reader.readAsText(file);
+  };
+
+  const updateAiSetting = <K extends keyof AISettings>(key: K, value: AISettings[K]) => {
+    const newAiSettings = { ...aiSettings, [key]: value };
+    setAiSettings(newAiSettings);
+    
+    if (key === 'provider') {
+      localStorage.setItem('adhd-ai-provider', value as string || '');
+      // Reset connection status when provider changes
+      setConnectionTestResult(null);
+      newAiSettings.isConnected = false;
+      localStorage.setItem('adhd-ai-connected', 'false');
+    } else if (key === 'apiKey') {
+      localStorage.setItem('adhd-ai-apikey', value as string || '');
+      // Reset connection status when API key changes
+      setConnectionTestResult(null);
+      newAiSettings.isConnected = false;
+      localStorage.setItem('adhd-ai-connected', 'false');
+    } else if (key === 'isConnected') {
+      localStorage.setItem('adhd-ai-connected', value ? 'true' : 'false');
+    } else if (key === 'lastTested') {
+      localStorage.setItem('adhd-ai-last-tested', (value as number).toString());
+    }
+    
+    setAiSettings(newAiSettings);
+  };
+
+  const testAiConnection = async () => {
+    if (!aiSettings.provider || !aiSettings.apiKey) {
+      setConnectionTestResult('Sélectionnez une IA et ajoutez votre clé API');
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('/api/test-ai-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: aiSettings.provider,
+          apiKey: aiSettings.apiKey
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setConnectionTestResult('✅ Connexion réussie');
+        updateAiSetting('isConnected', true);
+        updateAiSetting('lastTested', Date.now());
+      } else {
+        setConnectionTestResult(`❌ ${result.error || 'Clé API incorrecte'}`);
+        updateAiSetting('isConnected', false);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setConnectionTestResult('⏱️ Réponse trop lente, réessayez');
+      } else {
+        setConnectionTestResult('🔌 IA temporairement indisponible');
+      }
+      updateAiSetting('isConnected', false);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const clearAllData = () => {
@@ -412,6 +506,110 @@ Dernière vérif: ${new Date().toLocaleString('fr-FR')}
               <p id="clear-help" className="text-xs text-gray-500">
                 ⚠️ Action irréversible - supprime définitivement toutes vos données
               </p>
+            </div>
+          </section>
+
+          {/* Assistant IA */}
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">🤖 Assistant IA</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <fieldset>
+                  <legend className="block text-sm font-medium text-gray-700 mb-2">
+                    Sélectionnez votre IA préférée
+                  </legend>
+                  <div className="space-y-2" role="radiogroup" aria-label="Sélecteur d'assistant IA">
+                    {[
+                      { id: 'claude', label: 'Claude (Anthropic)', icon: '🎯' },
+                      { id: 'gpt-4', label: 'GPT-4 (OpenAI)', icon: '🧠' },
+                      { id: 'gemini-pro', label: 'Gemini Pro (Google)', icon: '✨' }
+                    ].map(provider => (
+                      <label
+                        key={provider.id}
+                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${
+                          aiSettings.provider === provider.id
+                            ? `${moodConfig.bgColor} ${moodConfig.textColor} border-current`
+                            : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="ai-provider"
+                          value={provider.id}
+                          checked={aiSettings.provider === provider.id}
+                          onChange={(e) => updateAiSetting('provider', e.target.value as AIProvider)}
+                          className="sr-only"
+                        />
+                        <span className="mr-3 text-xl" role="img" aria-hidden="true">
+                          {provider.icon}
+                        </span>
+                        <span className="font-medium">{provider.label}</span>
+                        {aiSettings.provider === provider.id && aiSettings.isConnected && (
+                          <span className="ml-auto text-green-500" role="img" aria-label="Connecté">
+                            ✅
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+
+              {aiSettings.provider && (
+                <div>
+                  <label htmlFor="api-key-input" className="block text-sm font-medium text-gray-700 mb-2">
+                    Clé API {aiSettings.provider === 'claude' ? 'Anthropic' : aiSettings.provider === 'gpt-4' ? 'OpenAI' : 'Google'}
+                  </label>
+                  <input
+                    id="api-key-input"
+                    type="password"
+                    value={aiSettings.apiKey}
+                    onChange={(e) => updateAiSetting('apiKey', e.target.value)}
+                    placeholder="sk-..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    aria-describedby="api-key-help"
+                  />
+                  <p id="api-key-help" className="mt-1 text-xs text-gray-500">
+                    Votre clé API reste sur votre appareil - elle n'est jamais stockée sur nos serveurs
+                  </p>
+                </div>
+              )}
+
+              {aiSettings.provider && aiSettings.apiKey && (
+                <div>
+                  <button
+                    onClick={testAiConnection}
+                    disabled={isTestingConnection}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    {isTestingConnection ? (
+                      <><span role="img" aria-hidden="true">⏳</span> Test en cours...</>
+                    ) : (
+                      <><span role="img" aria-hidden="true">🔌</span> Tester la connexion</>
+                    )}
+                  </button>
+                  
+                  {connectionTestResult && (
+                    <div className="mt-2 p-2 rounded-lg bg-gray-50 text-sm">
+                      {connectionTestResult}
+                    </div>
+                  )}
+                  
+                  {aiSettings.lastTested && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Dernier test: {new Date(aiSettings.lastTested).toLocaleString('fr-FR')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!aiSettings.provider && (
+                <div className="text-center py-4 text-gray-500">
+                  <span role="img" aria-hidden="true">🤖</span>
+                  <p className="mt-2 text-sm">Sélectionnez une IA pour commencer</p>
+                </div>
+              )}
             </div>
           </section>
 

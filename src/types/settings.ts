@@ -87,6 +87,16 @@ export const THEME_OPTIONS = {
   }
 };
 
+// Paramètres IA
+export type AIProvider = 'claude' | 'gpt-4' | 'gemini-pro';
+
+export interface AISettings {
+  provider?: AIProvider;
+  apiKey?: string;
+  isConnected: boolean;
+  lastTested?: number;
+}
+
 // Export complet des données
 export interface DataExport {
   version: string;
