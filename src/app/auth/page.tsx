@@ -9,9 +9,40 @@ export default function AuthPage() {
   const { isAuthenticated, isLoading, signIn, error } = useAuth();
   const router = useRouter();
 
+  // Débogage des query parameters au chargement
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const error = urlParams.get('error');
+      
+      console.log('🔍 DEBUG AUTH PAGE - Query params:', {
+        code: code ? 'présent' : 'absent',
+        state: state ? 'présent' : 'absent', 
+        error: error || 'absent',
+        url: window.location.href
+      });
+
+      // Si on a un code OAuth, c'est un callback
+      if (code && state) {
+        console.log('🎯 DEBUG AUTH PAGE - Callback OAuth détecté, traitement en cours...');
+        console.log('🔍 DEBUG AUTH PAGE - Code OAuth:', code.substring(0, 20) + '...');
+        console.log('🔍 DEBUG AUTH PAGE - État OAuth:', state.substring(0, 10) + '...');
+      } else if (error) {
+        console.log('❌ DEBUG AUTH PAGE - Erreur OAuth:', error);
+      } else {
+        console.log('🔍 DEBUG AUTH PAGE - Page auth normale (pas de callback)');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log('🔍 DEBUG AUTH PAGE - État auth:', { isAuthenticated, isLoading });
+    
     if (isAuthenticated && !isLoading) {
-      router.push('/');
+      console.log('🎯 DEBUG AUTH PAGE - Utilisateur connecté, redirection vers /settings...');
+      router.push('/settings');
     }
   }, [isAuthenticated, isLoading, router]);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useReducer, useState, ReactNode } from 'react';
 import { GoogleAuthProvider } from '@/lib/auth/GoogleAuthProvider';
 import { MicrosoftAuthProvider } from '@/lib/auth/MicrosoftAuthProvider';
 import { BaseAuthProvider } from '@/lib/auth/BaseAuthProvider';
@@ -123,25 +123,34 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   
-  const providers = {
-    google: new GoogleAuthProvider(),
-    microsoft: new MicrosoftAuthProvider(),
-  };
+  // Instancier les providers dès le début pour permettre le traitement des callbacks
+  const [providers] = useState(() => {
+    console.log('🔍 DEBUG AUTH CONTEXT - Instanciation des providers...');
+    return {
+      google: new GoogleAuthProvider(),
+      microsoft: new MicrosoftAuthProvider(),
+    };
+  });
 
   const currentProvider = state.user?.provider ? providers[state.user.provider] : null;
 
-  // Restaurer la session au démarrage
+  // Restaurer la session au démarrage et traiter les callbacks OAuth
   useEffect(() => {
     const restoreSession = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
 
       try {
+        console.log('🔍 DEBUG AUTH CONTEXT - Tentative de restauration de session...');
+        
         // Essayer de restaurer depuis chaque provider
         for (const [providerType, provider] of Object.entries(providers)) {
+          console.log(`🔍 DEBUG AUTH CONTEXT - Test restore pour ${providerType}...`);
+          
           const restored = await provider.restoreSession();
           if (restored) {
             const user = await provider.getCurrentUser();
             if (user) {
+              console.log(`🎯 DEBUG AUTH CONTEXT - Session restaurée pour ${providerType}:`, user.email);
               dispatch({
                 type: 'RESTORE_SESSION',
                 payload: {
@@ -154,15 +163,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         }
+        
+        console.log('🔍 DEBUG AUTH CONTEXT - Aucune session à restaurer');
       } catch (error) {
-        console.error('Erreur lors de la restauration de session:', error);
+        console.error('❌ DEBUG AUTH CONTEXT - Erreur lors de la restauration de session:', error);
       }
 
       dispatch({ type: 'SET_LOADING', payload: false });
     };
 
     restoreSession();
-  }, []);
+  }, [providers]);
 
   const signIn = async (providerType: AuthProviderType) => {
     dispatch({ type: 'SIGN_IN_START' });
