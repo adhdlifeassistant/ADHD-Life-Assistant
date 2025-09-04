@@ -186,10 +186,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     restoreSession();
     
     // Écouter les événements de changement d'état
-    window.addEventListener('authStateChanged', handleAuthStateChanged as EventListener);
+    window.addEventListener('authStateChanged', handleAuthStateChanged as any);
     
     return () => {
-      window.removeEventListener('authStateChanged', handleAuthStateChanged as EventListener);
+      window.removeEventListener('authStateChanged', handleAuthStateChanged as any);
     };
   }, [providers]);
 
