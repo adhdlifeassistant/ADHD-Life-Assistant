@@ -135,7 +135,7 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       client_id: this.clientId,
       redirect_uri: this.getRedirectUri(),
       response_type: 'code',
-      scope: 'openid email profile',
+      scope: 'openid email profile https://www.googleapis.com/auth/drive.file',
       state,
       access_type: 'offline',
       prompt: 'consent'
@@ -144,6 +144,8 @@ export class GoogleAuthProvider extends BaseAuthProvider {
     const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     console.log('🔍 DEBUG: Generated OAuth URL:', oauthUrl);
     console.log('🎯 REDIRECT_URI UTILISÉ:', this.getRedirectUri());
+    console.log('🔑 SCOPES DEMANDÉS:', params.get('scope'));
+    console.log('📋 URL QUERY PARAMS:', params.toString());
     
     return oauthUrl;
   }
