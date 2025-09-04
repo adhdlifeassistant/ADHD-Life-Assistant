@@ -111,8 +111,11 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       console.log('🔍 DEBUG: Authentication successful');
       console.log('🎯 DEBUG: Staying on current page (no redirect needed)');
       
-      // Ne plus rediriger - rester sur la page courante (/settings)
-      // Le contexte AuthContext se mettra à jour automatiquement
+      // Forcer la mise à jour de l'AuthContext en émettant un événement
+      window.dispatchEvent(new CustomEvent('authStateChanged', { 
+        detail: { type: 'signIn', user, accessToken: data.access_token } 
+      }));
+      
       localStorage.removeItem('oauth_return_url');
 
     } catch (error) {

@@ -172,7 +172,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'SET_LOADING', payload: false });
     };
 
+    // Écouter les changements d'état d'authentification (callback OAuth)
+    const handleAuthStateChanged = async (event: CustomEvent) => {
+      console.log('🎯 DEBUG AUTH CONTEXT - Événement authStateChanged reçu:', event.detail);
+      
+      if (event.detail.type === 'signIn') {
+        // Forcer une nouvelle restauration de session
+        await restoreSession();
+      }
+    };
+
+    // Restaurer la session au démarrage
     restoreSession();
+    
+    // Écouter les événements de changement d'état
+    window.addEventListener('authStateChanged', handleAuthStateChanged as EventListener);
+    
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthStateChanged as EventListener);
+    };
   }, [providers]);
 
   const signIn = async (providerType: AuthProviderType) => {
