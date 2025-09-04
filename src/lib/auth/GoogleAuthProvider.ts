@@ -51,9 +51,8 @@ export class GoogleAuthProvider extends BaseAuthProvider {
     // Stocker l'erreur pour l'affichage
     localStorage.setItem('oauth_error', userMessage);
     
-    if (window.location.pathname !== '/auth') {
-      window.location.href = '/auth';
-    }
+    // Plus besoin de rediriger vers /auth - l'erreur sera gérée sur /settings
+    console.log('🔍 DEBUG: OAuth error stored, will be handled by current page');
   }
 
   private async exchangeCodeForToken(code: string, state: string) {
@@ -109,12 +108,12 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       // Nettoyer l'URL
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      console.log('🔍 DEBUG: Authentication successful, redirecting...');
+      console.log('🔍 DEBUG: Authentication successful');
+      console.log('🎯 DEBUG: Staying on current page (no redirect needed)');
       
-      // Rediriger vers la page d'origine ou l'accueil
-      const returnUrl = localStorage.getItem('oauth_return_url') || '/';
+      // Ne plus rediriger - rester sur la page courante (/settings)
+      // Le contexte AuthContext se mettra à jour automatiquement
       localStorage.removeItem('oauth_return_url');
-      window.location.href = returnUrl;
 
     } catch (error) {
       console.error('Token exchange error:', error);
@@ -123,13 +122,13 @@ export class GoogleAuthProvider extends BaseAuthProvider {
   }
 
   private getRedirectUri(): string {
-    return `${window.location.origin}/auth`;
+    return `${window.location.origin}/settings`;
   }
 
   private generateOAuthUrl(): string {
     const state = this.generateRandomString(32);
     localStorage.setItem('oauth_state', state);
-    localStorage.setItem('oauth_return_url', window.location.pathname);
+    // Plus besoin de stocker l'URL de retour - on reste sur /settings
 
     const params = new URLSearchParams({
       client_id: this.clientId,
