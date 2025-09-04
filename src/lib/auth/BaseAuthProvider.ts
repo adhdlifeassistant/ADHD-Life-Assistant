@@ -14,6 +14,10 @@ export abstract class BaseAuthProvider implements AuthProvider {
     return this._currentUser;
   }
 
+  async restoreSession(): Promise<boolean> {
+    return false;
+  }
+
   isAuthenticated(): boolean {
     return this._isAuthenticated;
   }

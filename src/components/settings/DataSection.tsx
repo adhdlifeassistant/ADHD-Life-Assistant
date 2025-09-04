@@ -35,7 +35,7 @@ export function DataSection() {
     const initializeAuth = async () => {
       try {
         // Vérifier si l'utilisateur était déjà connecté
-        const isRestored = authProvider.restoreSession();
+        const isRestored = await authProvider.restoreSession();
         if (isRestored) {
           const user = await authProvider.getCurrentUser();
           if (user) {

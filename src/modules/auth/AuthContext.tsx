@@ -138,14 +138,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         // Essayer de restaurer depuis chaque provider
         for (const [providerType, provider] of Object.entries(providers)) {
-          if (provider.restoreSession && provider.restoreSession()) {
+          const restored = await provider.restoreSession();
+          if (restored) {
             const user = await provider.getCurrentUser();
             if (user) {
               dispatch({
                 type: 'RESTORE_SESSION',
                 payload: {
                   user,
-                  accessToken: (provider as any)._accessToken || '',
+                  accessToken: provider.getAccessToken() || '',
                   refreshToken: (provider as any)._refreshToken || '',
                 },
               });

@@ -248,7 +248,7 @@ export class GoogleAuthProvider extends BaseAuthProvider {
   }
 
   // Méthode pour restaurer l'état depuis le localStorage
-  restoreSession(): boolean {
+  async restoreSession(): Promise<boolean> {
     try {
       const user = localStorage.getItem('auth_user');
       const token = localStorage.getItem('auth_token');
