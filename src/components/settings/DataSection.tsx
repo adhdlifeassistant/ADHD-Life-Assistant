@@ -245,7 +245,11 @@ export function DataSection() {
   };
 
   const handleSyncNow = async () => {
+    console.log('🔥 DATASECTION DEBUG: handleSyncNow() appelé !');
+    console.log('🔥 DATASECTION DEBUG: isConnectedToCloud:', isConnectedToCloud);
+    
     if (!isConnectedToCloud) {
+      console.log('❌ DATASECTION DEBUG: Pas connecté au cloud');
       setSyncError('Veuillez vous connecter à Google Drive d\'abord');
       return;
     }
@@ -254,6 +258,7 @@ export function DataSection() {
     setSyncError(null);
     
     try {
+      console.log('✅ DATASECTION DEBUG: Ajout des opérations à la queue...');
       // Ajouter les données de profil et paramètres à la queue de sync
       syncManager.addOperation({
         type: 'upload',
@@ -261,6 +266,7 @@ export function DataSection() {
         data: profile,
         maxRetries: 3
       });
+      console.log('📝 DATASECTION DEBUG: Opération profile ajoutée');
       
       syncManager.addOperation({
         type: 'upload',
@@ -268,9 +274,12 @@ export function DataSection() {
         data: settings,
         maxRetries: 3
       });
+      console.log('📝 DATASECTION DEBUG: Opération settings ajoutée');
 
       // Forcer la synchronisation
+      console.log('🚀 DATASECTION DEBUG: Appel syncManager.forceSync()...');
       syncManager.forceSync();
+      console.log('✅ DATASECTION DEBUG: forceSync() appelé avec succès');
       
       // La mise à jour de l'état se fera via le callback onStatusChange
     } catch (error: any) {
