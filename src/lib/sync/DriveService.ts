@@ -53,8 +53,12 @@ export class DriveService {
   }
 
   async uploadModule(module: string, data: any, version: string = '1.0'): Promise<DriveFile> {
+    console.log('🚀 DRIVE DEBUG: uploadModule appelé pour:', module);
     const accessToken = this.authProvider.getAccessToken();
+    console.log('🚀 DRIVE DEBUG: accessToken présent:', !!accessToken);
+    
     if (!accessToken) {
+      console.error('❌ DRIVE DEBUG: Token d\'accès manquant');
       throw new Error('Token d\'accès manquant');
     }
 
@@ -95,6 +99,7 @@ export class DriveService {
     form.append('metadata', new Blob([JSON.stringify(driveMetadata)], { type: 'application/json' }));
     form.append('file', new Blob([JSON.stringify(fileContent)], { type: this.MIME_TYPE }));
 
+    console.log('📤 DRIVE DEBUG: Envoi requête upload vers Google Drive API...');
     const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
       method: 'POST',
       headers: {
@@ -103,12 +108,16 @@ export class DriveService {
       body: form
     });
 
+    console.log('📤 DRIVE DEBUG: Réponse Google Drive:', response.status, response.statusText);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('❌ DRIVE DEBUG: Upload échoué:', response.status, errorText);
       throw new Error(`Upload failed (${response.status}): ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('✅ DRIVE DEBUG: Upload réussi, file ID:', result.id);
     
     // Nettoyer les anciens fichiers du même module (garder les 5 plus récents)
     await this.cleanupOldFiles(module, accessToken);

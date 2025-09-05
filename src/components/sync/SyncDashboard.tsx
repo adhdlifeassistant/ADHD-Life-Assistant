@@ -139,9 +139,24 @@ export function SyncDashboard() {
         
         <button
           onClick={() => {
+            console.log('🔄 SYNC DEBUG: Bouton cliqué');
+            console.log('🔄 SYNC DEBUG: Status.isOnline:', status.isOnline);
+            console.log('🔄 SYNC DEBUG: Status.isSyncing:', status.isSyncing);
+            
             if (status.isOnline) {
-              const { SyncManager } = require('@/lib/sync/SyncManager');
-              SyncManager.getInstance().forceSync();
+              try {
+                console.log('🔄 SYNC DEBUG: Importing SyncManager...');
+                const { SyncManager } = require('@/lib/sync/SyncManager');
+                console.log('🔄 SYNC DEBUG: Getting SyncManager instance...');
+                const syncManager = SyncManager.getInstance();
+                console.log('🔄 SYNC DEBUG: Calling forceSync()...');
+                syncManager.forceSync();
+                console.log('🔄 SYNC DEBUG: forceSync() appelé avec succès');
+              } catch (error) {
+                console.error('❌ SYNC DEBUG: Erreur lors de forceSync:', error);
+              }
+            } else {
+              console.log('❌ SYNC DEBUG: Pas en ligne, sync ignorée');
             }
           }}
           disabled={!status.isOnline || status.isSyncing}

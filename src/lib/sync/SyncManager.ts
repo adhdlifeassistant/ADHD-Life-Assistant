@@ -128,23 +128,44 @@ export class SyncManager {
   }
 
   async processQueue(): Promise<void> {
+    console.log('🔄 SYNCMANAGER DEBUG: processQueue() appelé');
+    console.log('🔄 SYNCMANAGER DEBUG: isProcessing:', this.isProcessing);
+    console.log('🔄 SYNCMANAGER DEBUG: syncQueue length:', this.syncQueue.length);
+    
     if (this.isProcessing || !this.status.isOnline || !this.authProvider.isAuthenticated()) {
+      console.log('❌ SYNCMANAGER DEBUG: Conditions non remplies, sortie de processQueue');
       return;
     }
 
+    console.log('✅ SYNCMANAGER DEBUG: Début du traitement de la queue');
     this.isProcessing = true;
     this.status.isSyncing = true;
     this.updateStatus();
 
+    // Si la queue est vide, créons une opération de test
+    if (this.syncQueue.length === 0) {
+      console.log('📝 SYNCMANAGER DEBUG: Queue vide, ajout d\'une opération test');
+      this.addOperation({
+        type: 'upload',
+        module: 'test',
+        data: { message: 'Test sync', timestamp: Date.now() },
+        maxRetries: 3
+      });
+    }
+
     const pendingOps = this.syncQueue.filter(op => op.status === 'pending');
+    console.log('🔄 SYNCMANAGER DEBUG: Operations en attente:', pendingOps.length);
     
     for (const operation of pendingOps) {
       try {
+        console.log('🔄 SYNCMANAGER DEBUG: Traitement opération:', operation.id, operation.module);
         operation.status = 'processing';
         await this.executeOperation(operation);
         operation.status = 'completed';
         this.status.errorCount = Math.max(0, this.status.errorCount - 1);
+        console.log('✅ SYNCMANAGER DEBUG: Opération réussie:', operation.id);
       } catch (error) {
+        console.error('❌ SYNCMANAGER DEBUG: Erreur opération:', operation.id, error);
         await this.handleOperationError(operation, error);
       }
     }
@@ -154,24 +175,37 @@ export class SyncManager {
     this.status.isSyncing = false;
     this.isProcessing = false;
     
+    console.log('✅ SYNCMANAGER DEBUG: processQueue terminé, lastSync:', this.status.lastSync);
     this.persistQueue();
     this.updateStatus();
   }
 
   private async executeOperation(operation: SyncOperation): Promise<void> {
+    console.log('🔄 SYNCMANAGER DEBUG: executeOperation pour:', operation.type, operation.module);
+    
     switch (operation.type) {
       case 'upload':
-        await this.driveService.uploadModule(operation.module, operation.data);
+        console.log('📤 SYNCMANAGER DEBUG: Upload vers Google Drive...');
+        try {
+          const result = await this.driveService.uploadModule(operation.module, operation.data);
+          console.log('✅ SYNCMANAGER DEBUG: Upload réussi:', result.id);
+        } catch (error) {
+          console.error('❌ SYNCMANAGER DEBUG: Upload échoué:', error);
+          throw error;
+        }
         break;
       case 'download':
+        console.log('📥 SYNCMANAGER DEBUG: Download depuis Google Drive...');
         const result = await this.driveService.downloadLatestModule(operation.module);
         if (result) {
+          console.log('✅ SYNCMANAGER DEBUG: Download réussi');
           await this.handleRemoteData(operation.module, result.content);
+        } else {
+          console.log('ℹ️ SYNCMANAGER DEBUG: Aucun fichier trouvé pour download');
         }
         break;
       case 'delete':
-        // Implémentation future si nécessaire
-        console.log('Delete operation not yet implemented');
+        console.log('🗑️ SYNCMANAGER DEBUG: Delete operation not yet implemented');
         break;
     }
   }
@@ -288,8 +322,17 @@ export class SyncManager {
   }
 
   forceSync(): void {
+    console.log('🔄 SYNCMANAGER DEBUG: forceSync() appelé');
+    console.log('🔄 SYNCMANAGER DEBUG: isOnline:', this.status.isOnline);
+    console.log('🔄 SYNCMANAGER DEBUG: isAuthenticated:', this.authProvider.isAuthenticated());
+    
     if (this.status.isOnline && this.authProvider.isAuthenticated()) {
+      console.log('✅ SYNCMANAGER DEBUG: Conditions OK, lancement processQueue()');
       this.processQueue();
+    } else {
+      console.log('❌ SYNCMANAGER DEBUG: Conditions non remplies pour sync');
+      if (!this.status.isOnline) console.log('  - Pas en ligne');
+      if (!this.authProvider.isAuthenticated()) console.log('  - Non authentifié');
     }
   }
 
