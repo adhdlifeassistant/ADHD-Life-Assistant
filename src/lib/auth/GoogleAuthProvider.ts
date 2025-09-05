@@ -1,5 +1,5 @@
 import { BaseAuthProvider } from './BaseAuthProvider';
-import { User, AuthError } from '@/types/auth';
+import { User } from '@/types/auth';
 
 export class GoogleAuthProvider extends BaseAuthProvider {
   private clientId: string;
@@ -14,21 +14,30 @@ export class GoogleAuthProvider extends BaseAuthProvider {
   }
 
   private handleOAuthCallback() {
+    console.log('🔍 FRONTEND DEBUG: handleOAuthCallback() called');
+    console.log('🔍 FRONTEND DEBUG: Current URL:', window.location.href);
+    console.log('🔍 FRONTEND DEBUG: Search params:', window.location.search);
+    
     // Vérifier si on revient d'OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const error = urlParams.get('error');
 
+    console.log('🔍 FRONTEND DEBUG: URL params - code:', !!code, 'state:', !!state, 'error:', error);
+
     if (error) {
-      console.error('OAuth error:', error);
+      console.error('❌ FRONTEND DEBUG: OAuth error in URL:', error);
       this.handleOAuthError(error);
       return;
     }
 
     if (code && state) {
-      console.log('🔍 DEBUG: OAuth callback detected with code:', code);
+      console.log('✅ FRONTEND DEBUG: OAuth callback detected! Starting token exchange...');
+      console.log('✅ FRONTEND DEBUG: Code length:', code.length);
       this.exchangeCodeForToken(code, state);
+    } else {
+      console.log('ℹ️ FRONTEND DEBUG: No OAuth callback detected (no code/state in URL)');
     }
   }
 
@@ -57,31 +66,60 @@ export class GoogleAuthProvider extends BaseAuthProvider {
 
   private async exchangeCodeForToken(code: string, state: string) {
     try {
-      console.log('🔍 DEBUG: Exchanging code for token');
+      console.log('🔄 FRONTEND DEBUG: Starting exchangeCodeForToken');
+      console.log('🔄 FRONTEND DEBUG: Code length:', code?.length);
+      console.log('🔄 FRONTEND DEBUG: State:', state);
       
       // Vérifier le state pour la sécurité
       const storedState = localStorage.getItem('oauth_state');
+      console.log('🔄 FRONTEND DEBUG: Stored state:', storedState);
+      console.log('🔄 FRONTEND DEBUG: Received state:', state);
+      console.log('🔄 FRONTEND DEBUG: State match:', state === storedState);
+      
       if (state !== storedState) {
+        console.error('❌ FRONTEND DEBUG: CSRF State mismatch!');
         throw new Error('État OAuth invalide - possible attaque CSRF');
       }
 
-      const response = await fetch('/api/auth/callback/google', {
+      const requestBody = {
+        code,
+        state,
+        redirect_uri: this.getRedirectUri()
+      };
+      
+      console.log('📤 FRONTEND DEBUG: Sending request to /api/auth/callback/google/');
+      console.log('📤 FRONTEND DEBUG: Request body:', requestBody);
+
+      const response = await fetch('/api/auth/callback/google/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          code,
-          redirect_uri: this.getRedirectUri()
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('📡 FRONTEND DEBUG: Response status:', response.status);
+      console.log('📡 FRONTEND DEBUG: Response ok:', response.ok);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        console.error('❌ FRONTEND DEBUG: Response not ok');
+        const errorData = await response.json().catch(e => {
+          console.error('❌ FRONTEND DEBUG: Failed to parse error response:', e);
+          return { error: 'Failed to parse error response' };
+        });
+        console.error('❌ FRONTEND DEBUG: Error data from server:', errorData);
         throw new Error(errorData.error || 'Erreur lors de l\'échange du code');
       }
 
+      console.log('✅ FRONTEND DEBUG: Response OK, parsing JSON...');
       const data = await response.json();
+      console.log('📥 FRONTEND DEBUG: Received data from server:', {
+        success: data.success,
+        user: !!data.user,
+        access_token: !!data.access_token,
+        refresh_token: !!data.refresh_token
+      });
+      console.log('👤 FRONTEND DEBUG: Creating user object...');
       const user: User = {
         id: data.user.id,
         email: data.user.email,
@@ -89,37 +127,53 @@ export class GoogleAuthProvider extends BaseAuthProvider {
         picture: data.user.picture,
         provider: 'google'
       };
+      console.log('👤 FRONTEND DEBUG: User object created:', user);
 
+      console.log('💾 FRONTEND DEBUG: Updating internal state...');
       this._currentUser = user;
       this._isAuthenticated = true;
       this._accessToken = data.access_token;
       this._refreshToken = data.refresh_token;
+      console.log('💾 FRONTEND DEBUG: Internal state updated - isAuthenticated:', this._isAuthenticated);
 
+      console.log('💾 FRONTEND DEBUG: Saving to localStorage...');
       // Sauvegarder dans localStorage
       localStorage.setItem('auth_user', JSON.stringify(user));
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_refresh_token', data.refresh_token || '');
       localStorage.setItem('auth_provider', 'google');
+      console.log('💾 FRONTEND DEBUG: Data saved to localStorage');
       
+      // Vérification immédiate localStorage
+      console.log('🔍 FRONTEND DEBUG: Verification localStorage after save:');
+      console.log('🔍 FRONTEND DEBUG: auth_user:', !!localStorage.getItem('auth_user'));
+      console.log('🔍 FRONTEND DEBUG: auth_token:', !!localStorage.getItem('auth_token'));
+      console.log('🔍 FRONTEND DEBUG: auth_provider:', localStorage.getItem('auth_provider'));
+      
+      console.log('🧹 FRONTEND DEBUG: Cleaning temporary data...');
       // Nettoyer les données temporaires
       localStorage.removeItem('oauth_state');
       localStorage.removeItem('oauth_error');
-
-      // Nettoyer l'URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-      console.log('🔍 DEBUG: Authentication successful');
-      console.log('🎯 DEBUG: Staying on current page (no redirect needed)');
-      
-      // Forcer la mise à jour de l'AuthContext en émettant un événement
-      window.dispatchEvent(new CustomEvent('authStateChanged', { 
-        detail: { type: 'signIn', user, accessToken: data.access_token } 
-      }));
-      
       localStorage.removeItem('oauth_return_url');
 
+      // Nettoyer l'URL
+      console.log('🧹 FRONTEND DEBUG: Cleaning URL...');
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      console.log('✅ FRONTEND DEBUG: Authentication successful - all data saved!');
+      console.log('📢 FRONTEND DEBUG: Dispatching authStateChanged event...');
+      
+      // Forcer la mise à jour de l'AuthContext en émettant un événement
+      const customEvent = new CustomEvent('authStateChanged', { 
+        detail: { type: 'signIn', user, accessToken: data.access_token } 
+      });
+      window.dispatchEvent(customEvent);
+      console.log('📢 FRONTEND DEBUG: authStateChanged event dispatched!');
+
     } catch (error) {
-      console.error('Token exchange error:', error);
+      console.error('💥 FRONTEND DEBUG: Token exchange CRASHED:', error);
+      console.error('💥 FRONTEND DEBUG: Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('💥 FRONTEND DEBUG: Error stack:', error instanceof Error ? error.stack : 'No stack');
       this.handleOAuthError('server_error');
     }
   }
@@ -226,7 +280,7 @@ export class GoogleAuthProvider extends BaseAuthProvider {
         throw new Error('Pas de refresh token disponible');
       }
 
-      const response = await fetch('/api/auth/refresh/google', {
+      const response = await fetch('/api/auth/refresh/google/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
