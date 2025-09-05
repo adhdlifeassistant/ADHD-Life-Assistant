@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export', // Désactivé pour permettre les routes API OAuth
   trailingSlash: true,
-  distDir: 'out',
+  // distDir: 'out', // Retiré pour mode serveur standard
   // PWA Configuration
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -23,7 +23,7 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    unoptimized: true,
+    // unoptimized: true, // Retiré pour mode serveur standard
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
