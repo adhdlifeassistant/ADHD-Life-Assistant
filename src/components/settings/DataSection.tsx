@@ -290,7 +290,7 @@ export function DataSection() {
         setStorageUsage(usage);
         
         // Synchroniser automatiquement après connexion
-        syncManager.forceSync();
+        await syncManager.forceSyncUserData();
         
       } catch (error: any) {
         console.error('Erreur lors de la connexion:', error);
@@ -337,8 +337,8 @@ export function DataSection() {
       console.log('📝 DATASECTION DEBUG: Opération settings ajoutée');
 
       // Forcer la synchronisation
-      console.log('🚀 DATASECTION DEBUG: Appel syncManager.forceSync()...');
-      syncManager.forceSync();
+      console.log('🚀 DATASECTION DEBUG: Appel syncManager.forceSyncUserData() - upload données réelles...');
+      await syncManager.forceSyncUserData();
       console.log('✅ DATASECTION DEBUG: forceSync() appelé avec succès');
       
       // La mise à jour de l'état se fera via le callback onStatusChange
@@ -582,6 +582,21 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
             className="px-3 py-1 bg-red-200 text-red-800 rounded text-sm"
           >
             🔄 Reauth Scopes
+          </button>
+          <button
+            onClick={async () => {
+              console.log('📤📤📤 UPLOAD DONNÉES RÉELLES 📤📤📤');
+              try {
+                await syncManager.forceSyncUserData();
+                alert('✅ Upload des données utilisateur démarré ! Voir console pour les logs détaillés.');
+              } catch (error) {
+                console.error('📤 UPLOAD ERROR:', error);
+                alert(`💥 Erreur upload: ${error}`);
+              }
+            }}
+            className="px-3 py-1 bg-green-200 text-green-800 rounded text-sm"
+          >
+            📤 Upload Data
           </button>
         </div>
       </div>

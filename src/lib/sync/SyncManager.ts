@@ -142,15 +142,10 @@ export class SyncManager {
     this.status.isSyncing = true;
     this.updateStatus();
 
-    // Si la queue est vide, créons une opération de test
+    // Si la queue est vide, collectons les vraies données utilisateur
     if (this.syncQueue.length === 0) {
-      console.log('📝 SYNCMANAGER DEBUG: Queue vide, ajout d\'une opération test');
-      this.addOperation({
-        type: 'upload',
-        module: 'test',
-        data: { message: 'Test sync', timestamp: Date.now() },
-        maxRetries: 3
-      });
+      console.log('📝 SYNCMANAGER DEBUG: Queue vide, collecte des données utilisateur réelles...');
+      await this.collectUserDataForUpload();
     }
 
     const pendingOps = this.syncQueue.filter(op => op.status === 'pending');
@@ -259,6 +254,72 @@ export class SyncManager {
     }
   }
 
+  // NOUVEAU : Collecter les vraies données utilisateur pour upload
+  private async collectUserDataForUpload(): Promise<void> {
+    console.log('📊 SYNCMANAGER DEBUG: Collecte des données utilisateur...');
+    
+    // Définir les modules et leurs clés localStorage
+    const moduleConfigs = [
+      { module: 'profile', keys: ['userProfile'] },
+      { module: 'health', keys: ['healthProfile', 'medications'] },
+      { module: 'mood', keys: ['moodEntries', 'moodSettings'] },
+      { module: 'reminders', keys: ['reminders', 'reminderSettings'] },
+      { module: 'checklists', keys: ['checklists', 'checklistSettings'] },
+      { module: 'tasks', keys: ['tasks', 'taskSettings'] }
+    ];
+
+    for (const config of moduleConfigs) {
+      try {
+        console.log(`📊 SYNCMANAGER DEBUG: Checking module ${config.module}...`);
+        
+        // Collecter toutes les données du module
+        const moduleData: any = {};
+        let hasData = false;
+
+        for (const key of config.keys) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              const parsedData = JSON.parse(data);
+              moduleData[key] = parsedData;
+              hasData = true;
+              console.log(`✅ SYNCMANAGER DEBUG: Données trouvées pour ${key}:`, 
+                         Object.keys(parsedData).length > 0 ? Object.keys(parsedData) : 'primitive data');
+            } catch (parseError) {
+              console.warn(`⚠️ SYNCMANAGER DEBUG: Erreur parsing ${key}:`, parseError);
+              // Si ce n'est pas du JSON, stocker tel quel
+              moduleData[key] = data;
+              hasData = true;
+            }
+          } else {
+            console.log(`ℹ️ SYNCMANAGER DEBUG: Pas de données pour ${key}`);
+          }
+        }
+
+        if (hasData) {
+          console.log(`📤 SYNCMANAGER DEBUG: Ajout opération upload pour ${config.module}`);
+          this.addOperation({
+            type: 'upload',
+            module: config.module,
+            data: {
+              ...moduleData,
+              deviceId: this.generateId(),
+              exportedAt: new Date().toISOString(),
+              version: '1.0'
+            },
+            maxRetries: 3
+          });
+        } else {
+          console.log(`ℹ️ SYNCMANAGER DEBUG: Aucune donnée à synchroniser pour ${config.module}`);
+        }
+      } catch (error) {
+        console.error(`❌ SYNCMANAGER DEBUG: Erreur collecte ${config.module}:`, error);
+      }
+    }
+
+    console.log('✅ SYNCMANAGER DEBUG: Collecte terminée, queue length:', this.syncQueue.length);
+  }
+
   private async checkRemoteChanges(): Promise<void> {
     // Vérifier s'il y a des changements distants pour chaque module
     const modules = ['profile', 'health', 'mood', 'reminders', 'checklists'];
@@ -336,9 +397,30 @@ export class SyncManager {
     }
   }
 
+  // NOUVEAU : Forcer la collecte et upload de toutes les données utilisateur
+  async forceSyncUserData(): Promise<void> {
+    console.log('🚀 SYNCMANAGER DEBUG: forceSyncUserData() appelé - upload données réelles');
+    console.log('🚀 SYNCMANAGER DEBUG: isOnline:', this.status.isOnline);
+    console.log('🚀 SYNCMANAGER DEBUG: isAuthenticated:', this.authProvider.isAuthenticated());
+    
+    if (!this.status.isOnline || !this.authProvider.isAuthenticated()) {
+      console.log('❌ SYNCMANAGER DEBUG: Conditions non remplies pour sync');
+      return;
+    }
+
+    // Vider la queue existante pour partir propre
+    this.syncQueue = [];
+    
+    // Collecter les données utilisateur
+    await this.collectUserDataForUpload();
+    
+    // Lancer le processus
+    this.processQueue();
+  }
+
   // Méthodes privées utilitaires
   private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
   private persistQueue(): void {
