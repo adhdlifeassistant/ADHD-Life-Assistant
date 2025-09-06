@@ -78,6 +78,9 @@ export class DriveService {
         if (searchResult.files && searchResult.files.length > 0) {
           this.visibleFolderId = searchResult.files[0].id;
           console.log('📁 FOLDER DEBUG: Dossier existant trouvé:', this.visibleFolderId);
+          if (!this.visibleFolderId) {
+            throw new Error('Folder ID not found after search');
+          }
           return this.visibleFolderId;
         }
       }
@@ -105,6 +108,9 @@ export class DriveService {
       this.visibleFolderId = createResult.id;
       console.log('📁 FOLDER DEBUG: Nouveau dossier créé:', this.visibleFolderId);
       
+      if (!this.visibleFolderId) {
+        throw new Error('Folder ID not found after creation');
+      }
       return this.visibleFolderId;
     } catch (error) {
       console.error('Erreur lors de la création/récupération du dossier:', error);
