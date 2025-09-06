@@ -219,41 +219,46 @@ export function DataSection() {
     }
   };
 
-  // DEBUG - Fonction pour analyser le token OAuth
+  // DEBUG - Fonction pour analyser TOUT le stockage OAuth
   const debugOAuthToken = () => {
-    const token = localStorage.getItem('auth_token');
-    const refreshToken = localStorage.getItem('auth_refresh_token');
-    const user = localStorage.getItem('auth_user');
+    console.log('🔍🔍🔍 DEBUG STOCKAGE COMPLET 🔍🔍🔍');
     
-    console.log('🔍 DEBUG TOKEN - Raw token:', token ? 'présent' : 'absent');
-    console.log('🔍 DEBUG TOKEN - Token length:', token?.length || 0);
-    console.log('🔍 DEBUG TOKEN - User data:', user ? 'présent' : 'absent');
-    console.log('🔍 DEBUG TOKEN - Refresh token:', refreshToken ? 'présent' : 'absent');
+    // 1. TOUTES LES CLÉS LOCALSTORAGE
+    console.log('📦 TOUTES LES CLÉS LOCALSTORAGE:', Object.keys(localStorage));
     
-    // Analyser le token complet
-    if (token) {
-      console.log('🔍 DEBUG TOKEN - Token complet (SENSIBLE):', token);
-      console.log('🔍 DEBUG TOKEN - Premier/derniers chars:', 
-        `${token.substring(0, 20)}...${token.substring(token.length - 20)}`);
-      
-      // Vérifier si c'est un token Bearer valide
-      const isBearer = token.startsWith('ya29.') || token.includes('.');
-      console.log('🔍 DEBUG TOKEN - Format Bearer Google:', isBearer);
-      
-      // Essayer de détecter si le token est expiré (heuristique)
-      const tokenAge = Date.now() - parseInt(localStorage.getItem('auth_token_timestamp') || '0');
-      const ageMinutes = Math.floor(tokenAge / (1000 * 60));
-      console.log('🔍 DEBUG TOKEN - Âge estimé (minutes):', ageMinutes);
-      console.log('🔍 DEBUG TOKEN - Potentiellement expiré (>50min):', ageMinutes > 50);
-    }
+    // 2. CLÉS SPÉCIFIQUES AUTH
+    const authKeys = ['auth_token', 'auth_refresh_token', 'auth_user', 'auth_provider', 'auth_token_timestamp', 'oauth_tokens', 'oauth_state', 'oauth_pending'];
+    authKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      console.log(`📋 localStorage['${key}']:`, value ? `présent (${value.length} chars)` : 'null');
+      if (key === 'auth_user' && value) {
+        try {
+          console.log(`👤 User data:`, JSON.parse(value));
+        } catch (e) {
+          console.log('❌ Erreur parsing user:', e);
+        }
+      }
+    });
     
-    console.log('🔍 DEBUG TOKEN - authProvider.isAuthenticated():', authProvider.isAuthenticated());
-    console.log('🔍 DEBUG TOKEN - authProvider.getAccessToken():', !!authProvider.getAccessToken());
+    // 3. SESSIONSTORAGE
+    console.log('💾 TOUTES LES CLÉS SESSIONSTORAGE:', Object.keys(sessionStorage));
+    authKeys.forEach(key => {
+      const value = sessionStorage.getItem(key);
+      if (value) console.log(`📋 sessionStorage['${key}']:`, `présent (${value.length} chars)`);
+    });
     
-    // Tester la construction du header Authorization
-    if (token) {
-      const authHeader = `Bearer ${token}`;
-      console.log('🔍 DEBUG TOKEN - Header Authorization construit:', authHeader.substring(0, 50) + '...');
+    // 4. ÉTAT AUTHPROVIDER
+    console.log('🔐 AuthProvider.isAuthenticated():', authProvider.isAuthenticated());
+    console.log('🔐 AuthProvider.getAccessToken():', !!authProvider.getAccessToken());
+    console.log('🔐 AuthProvider.getCurrentUser():', !!authProvider.getCurrentUser());
+    
+    // 5. ÉTAT LOCAL COMPOSANT
+    console.log('⚡ État local isConnectedToCloud:', isConnectedToCloud);
+    console.log('⚡ État local cloudAccount:', cloudAccount);
+    
+    // 6. COOKIES (si existants)
+    if (typeof document !== 'undefined') {
+      console.log('🍪 Cookies document.cookie:', document.cookie || 'vide');
     }
   };
 
@@ -479,16 +484,20 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
 
       {/* DEBUG PANEL - À retirer après debug */}
       <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-        <h4 className="font-bold text-yellow-800 mb-2">🔧 DEBUG PANEL - Diagnostic 401</h4>
+        <h4 className="font-bold text-yellow-800 mb-2">🔧 DEBUG PANEL - MYSTÈRE STOCKAGE OAUTH</h4>
+        <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+          <div>Interface: <span className={isConnectedToCloud ? 'text-green-600' : 'text-red-600'}>{isConnectedToCloud ? 'CONNECTÉ' : 'DÉCONNECTÉ'}</span></div>
+          <div>Account: <span className="text-gray-600">{cloudAccount || 'null'}</span></div>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
-              console.log('🔥🔥🔥 TEST BOUTON DEBUG CLIQUÉ 🔥🔥🔥');
+              console.log('🔥🔥🔥 AUDIT STOCKAGE COMPLET 🔥🔥🔥');
               debugOAuthToken();
             }}
             className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-sm"
           >
-            🔍 Debug Token
+            🔍 Audit Stockage
           </button>
           <button
             onClick={async () => {
@@ -512,6 +521,22 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
             className="px-3 py-1 bg-green-200 text-green-800 rounded text-sm"
           >
             📡 Test Drive API
+          </button>
+          <button
+            onClick={async () => {
+              console.log('🔥🔥🔥 TEST RESTORE SESSION 🔥🔥🔥');
+              try {
+                const restored = await authProvider.restoreSession();
+                console.log('✅ RestoreSession result:', restored);
+                console.log('✅ User après restore:', authProvider.getCurrentUser());
+                console.log('✅ IsAuthenticated après restore:', authProvider.isAuthenticated());
+              } catch (error) {
+                console.error('❌ Erreur restoreSession:', error);
+              }
+            }}
+            className="px-3 py-1 bg-indigo-200 text-indigo-800 rounded text-sm"
+          >
+            🔄 Test Restore
           </button>
           <button
             onClick={() => {
