@@ -205,28 +205,56 @@ export function DataSection() {
 
   const dataSize = getDataSize();
 
+  // DEBUG - Fonction pour tester refresh token
+  const testRefreshToken = async () => {
+    console.log('🔄 DEBUG REFRESH - Test refresh token...');
+    try {
+      const newToken = await authProvider.refreshAccessToken();
+      console.log('✅ DEBUG REFRESH - Nouveau token obtenu:', !!newToken);
+      console.log('✅ DEBUG REFRESH - Token length:', newToken?.length || 0);
+      // Forcer update de l'état local
+      localStorage.setItem('auth_token_timestamp', Date.now().toString());
+    } catch (error) {
+      console.error('❌ DEBUG REFRESH - Erreur refresh:', error);
+    }
+  };
+
   // DEBUG - Fonction pour analyser le token OAuth
   const debugOAuthToken = () => {
     const token = localStorage.getItem('auth_token');
+    const refreshToken = localStorage.getItem('auth_refresh_token');
     const user = localStorage.getItem('auth_user');
+    
     console.log('🔍 DEBUG TOKEN - Raw token:', token ? 'présent' : 'absent');
     console.log('🔍 DEBUG TOKEN - Token length:', token?.length || 0);
     console.log('🔍 DEBUG TOKEN - User data:', user ? 'présent' : 'absent');
+    console.log('🔍 DEBUG TOKEN - Refresh token:', refreshToken ? 'présent' : 'absent');
     
-    // Tenter de décoder le token (s'il s'agit d'un JWT)
+    // Analyser le token complet
     if (token) {
-      try {
-        // Les tokens Google ne sont pas des JWT mais des access tokens opaques
-        // Mais on peut vérifier s'il contient des caractères suspects
-        console.log('🔍 DEBUG TOKEN - Premier/derniers chars:', 
-          `${token.substring(0, 10)}...${token.substring(token.length - 10)}`);
-      } catch (e) {
-        console.log('🔍 DEBUG TOKEN - Pas un JWT, token opaque Google');
-      }
+      console.log('🔍 DEBUG TOKEN - Token complet (SENSIBLE):', token);
+      console.log('🔍 DEBUG TOKEN - Premier/derniers chars:', 
+        `${token.substring(0, 20)}...${token.substring(token.length - 20)}`);
+      
+      // Vérifier si c'est un token Bearer valide
+      const isBearer = token.startsWith('ya29.') || token.includes('.');
+      console.log('🔍 DEBUG TOKEN - Format Bearer Google:', isBearer);
+      
+      // Essayer de détecter si le token est expiré (heuristique)
+      const tokenAge = Date.now() - parseInt(localStorage.getItem('auth_token_timestamp') || '0');
+      const ageMinutes = Math.floor(tokenAge / (1000 * 60));
+      console.log('🔍 DEBUG TOKEN - Âge estimé (minutes):', ageMinutes);
+      console.log('🔍 DEBUG TOKEN - Potentiellement expiré (>50min):', ageMinutes > 50);
     }
     
     console.log('🔍 DEBUG TOKEN - authProvider.isAuthenticated():', authProvider.isAuthenticated());
     console.log('🔍 DEBUG TOKEN - authProvider.getAccessToken():', !!authProvider.getAccessToken());
+    
+    // Tester la construction du header Authorization
+    if (token) {
+      const authHeader = `Bearer ${token}`;
+      console.log('🔍 DEBUG TOKEN - Header Authorization construit:', authHeader.substring(0, 50) + '...');
+    }
   };
 
   // Fonctions réelles pour l'authentification et la synchronisation
@@ -451,8 +479,8 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
 
       {/* DEBUG PANEL - À retirer après debug */}
       <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-        <h4 className="font-bold text-yellow-800 mb-2">🔧 DEBUG PANEL</h4>
-        <div className="flex gap-2">
+        <h4 className="font-bold text-yellow-800 mb-2">🔧 DEBUG PANEL - Diagnostic 401</h4>
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
               console.log('🔥🔥🔥 TEST BOUTON DEBUG CLIQUÉ 🔥🔥🔥');
@@ -463,13 +491,13 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
             🔍 Debug Token
           </button>
           <button
-            onClick={() => {
-              console.log('🔥🔥🔥 TEST BOUTON SYNC DEBUG 🔥🔥🔥');
-              handleSyncNow();
+            onClick={async () => {
+              console.log('🔥🔥🔥 TEST REFRESH TOKEN 🔥🔥🔥');
+              await testRefreshToken();
             }}
-            className="px-3 py-1 bg-blue-200 text-blue-800 rounded text-sm"
+            className="px-3 py-1 bg-purple-200 text-purple-800 rounded text-sm"
           >
-            🔄 Test Sync
+            🔄 Refresh Token
           </button>
           <button
             onClick={async () => {
@@ -484,6 +512,15 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
             className="px-3 py-1 bg-green-200 text-green-800 rounded text-sm"
           >
             📡 Test Drive API
+          </button>
+          <button
+            onClick={() => {
+              console.log('🔥🔥🔥 TEST BOUTON SYNC DEBUG 🔥🔥🔥');
+              handleSyncNow();
+            }}
+            className="px-3 py-1 bg-blue-200 text-blue-800 rounded text-sm"
+          >
+            🔄 Test Sync
           </button>
         </div>
       </div>

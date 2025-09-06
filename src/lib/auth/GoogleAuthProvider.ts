@@ -137,12 +137,13 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       console.log('💾 FRONTEND DEBUG: Internal state updated - isAuthenticated:', this._isAuthenticated);
 
       console.log('💾 FRONTEND DEBUG: Saving to localStorage...');
-      // Sauvegarder dans localStorage
+      // Sauvegarder dans localStorage avec timestamp
       localStorage.setItem('auth_user', JSON.stringify(user));
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_refresh_token', data.refresh_token || '');
       localStorage.setItem('auth_provider', 'google');
-      console.log('💾 FRONTEND DEBUG: Data saved to localStorage');
+      localStorage.setItem('auth_token_timestamp', Date.now().toString());
+      console.log('💾 FRONTEND DEBUG: Data saved to localStorage with timestamp:', Date.now());
       
       // Vérification immédiate localStorage
       console.log('🔍 FRONTEND DEBUG: Verification localStorage after save:');
@@ -276,31 +277,49 @@ export class GoogleAuthProvider extends BaseAuthProvider {
 
   async refreshAccessToken(): Promise<string> {
     try {
+      console.log('🔄 REFRESH DEBUG: refreshAccessToken() appelé');
+      console.log('🔄 REFRESH DEBUG: this._refreshToken présent:', !!this._refreshToken);
+      
       if (!this._refreshToken) {
+        console.log('❌ REFRESH DEBUG: Pas de refresh token disponible');
         throw new Error('Pas de refresh token disponible');
       }
+
+      console.log('📡 REFRESH DEBUG: Envoi requête à /api/auth/refresh/google/');
+      const requestBody = {
+        refresh_token: this._refreshToken
+      };
+      console.log('📡 REFRESH DEBUG: Request body:', { refresh_token: '***masked***' });
 
       const response = await fetch('/api/auth/refresh/google/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          refresh_token: this._refreshToken
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('📡 REFRESH DEBUG: Response status:', response.status);
+      console.log('📡 REFRESH DEBUG: Response ok:', response.ok);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ REFRESH DEBUG: Response error:', errorText);
         throw new Error('Erreur lors du renouvellement du token');
       }
 
       const data = await response.json();
+      console.log('✅ REFRESH DEBUG: Nouveau token reçu, length:', data.access_token?.length || 0);
+      
       this._accessToken = data.access_token;
       
       localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_token_timestamp', Date.now().toString());
+      console.log('✅ REFRESH DEBUG: Token sauvé avec nouveau timestamp');
 
       return data.access_token;
     } catch (error) {
+      console.error('❌ REFRESH DEBUG: Erreur complète:', error);
       throw this.handleError(error);
     }
   }

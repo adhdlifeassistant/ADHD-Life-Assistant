@@ -323,20 +323,24 @@ export class DriveService {
     }
 
     try {
-      console.log('📡 DRIVE DEBUG: getStorageUsage() - Requête vers Drive API...');
-      console.log('📡 DRIVE DEBUG: getStorageUsage() - Headers Authorization:', `Bearer ${accessToken.substring(0, 20)}...`);
+      const url = 'https://www.googleapis.com/drive/v3/about?fields=storageQuota';
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
       
-      const response = await fetch(
-        'https://www.googleapis.com/drive/v3/about?fields=storageQuota',
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        }
-      );
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Requête vers Drive API...');
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - URL:', url);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Headers complets:', headers);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Token pour curl test:', `Bearer ${accessToken.substring(0, 30)}...`);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Commande curl équivalente:');
+      console.log(`curl -H "Authorization: Bearer ${accessToken}" "${url}"`);
+      
+      const response = await fetch(url, { headers });
       
       console.log('📡 DRIVE DEBUG: getStorageUsage() - Response status:', response.status);
       console.log('📡 DRIVE DEBUG: getStorageUsage() - Response ok:', response.ok);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         console.log('❌ DRIVE DEBUG: getStorageUsage() - Réponse non OK');
