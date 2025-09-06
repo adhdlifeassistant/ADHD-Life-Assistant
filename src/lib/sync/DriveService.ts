@@ -314,11 +314,18 @@ export class DriveService {
 
   async getStorageUsage(): Promise<{ used: number; limit: number }> {
     const accessToken = this.authProvider.getAccessToken();
+    console.log('🔍 DRIVE DEBUG: getStorageUsage() - token présent:', !!accessToken);
+    console.log('🔍 DRIVE DEBUG: getStorageUsage() - token length:', accessToken?.length || 0);
+    
     if (!accessToken) {
+      console.log('❌ DRIVE DEBUG: getStorageUsage() - Pas de token d\'accès');
       return { used: 0, limit: 0 };
     }
 
     try {
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Requête vers Drive API...');
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Headers Authorization:', `Bearer ${accessToken.substring(0, 20)}...`);
+      
       const response = await fetch(
         'https://www.googleapis.com/drive/v3/about?fields=storageQuota',
         {
@@ -327,8 +334,14 @@ export class DriveService {
           }
         }
       );
+      
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Response status:', response.status);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Response ok:', response.ok);
 
       if (!response.ok) {
+        console.log('❌ DRIVE DEBUG: getStorageUsage() - Réponse non OK');
+        const errorText = await response.text();
+        console.log('❌ DRIVE DEBUG: getStorageUsage() - Error response:', errorText);
         return { used: 0, limit: 0 };
       }
 

@@ -205,6 +205,30 @@ export function DataSection() {
 
   const dataSize = getDataSize();
 
+  // DEBUG - Fonction pour analyser le token OAuth
+  const debugOAuthToken = () => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('auth_user');
+    console.log('🔍 DEBUG TOKEN - Raw token:', token ? 'présent' : 'absent');
+    console.log('🔍 DEBUG TOKEN - Token length:', token?.length || 0);
+    console.log('🔍 DEBUG TOKEN - User data:', user ? 'présent' : 'absent');
+    
+    // Tenter de décoder le token (s'il s'agit d'un JWT)
+    if (token) {
+      try {
+        // Les tokens Google ne sont pas des JWT mais des access tokens opaques
+        // Mais on peut vérifier s'il contient des caractères suspects
+        console.log('🔍 DEBUG TOKEN - Premier/derniers chars:', 
+          `${token.substring(0, 10)}...${token.substring(token.length - 10)}`);
+      } catch (e) {
+        console.log('🔍 DEBUG TOKEN - Pas un JWT, token opaque Google');
+      }
+    }
+    
+    console.log('🔍 DEBUG TOKEN - authProvider.isAuthenticated():', authProvider.isAuthenticated());
+    console.log('🔍 DEBUG TOKEN - authProvider.getAccessToken():', !!authProvider.getAccessToken());
+  };
+
   // Fonctions réelles pour l'authentification et la synchronisation
   const handleConnectToCloud = async () => {
     if (isConnectedToCloud) {
@@ -247,6 +271,9 @@ export function DataSection() {
   const handleSyncNow = async () => {
     console.log('🔥 DATASECTION DEBUG: handleSyncNow() appelé !');
     console.log('🔥 DATASECTION DEBUG: isConnectedToCloud:', isConnectedToCloud);
+    
+    // Debug complet des tokens OAuth
+    debugOAuthToken();
     
     if (!isConnectedToCloud) {
       console.log('❌ DATASECTION DEBUG: Pas connecté au cloud');
@@ -422,6 +449,45 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
         </div>
       )}
 
+      {/* DEBUG PANEL - À retirer après debug */}
+      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+        <h4 className="font-bold text-yellow-800 mb-2">🔧 DEBUG PANEL</h4>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              console.log('🔥🔥🔥 TEST BOUTON DEBUG CLIQUÉ 🔥🔥🔥');
+              debugOAuthToken();
+            }}
+            className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-sm"
+          >
+            🔍 Debug Token
+          </button>
+          <button
+            onClick={() => {
+              console.log('🔥🔥🔥 TEST BOUTON SYNC DEBUG 🔥🔥🔥');
+              handleSyncNow();
+            }}
+            className="px-3 py-1 bg-blue-200 text-blue-800 rounded text-sm"
+          >
+            🔄 Test Sync
+          </button>
+          <button
+            onClick={async () => {
+              console.log('🔥🔥🔥 TEST DRIVE API DEBUG 🔥🔥🔥');
+              try {
+                const usage = await driveService.getStorageUsage();
+                console.log('📊 Drive usage result:', usage);
+              } catch (error) {
+                console.error('❌ Drive usage error:', error);
+              }
+            }}
+            className="px-3 py-1 bg-green-200 text-green-800 rounded text-sm"
+          >
+            📡 Test Drive API
+          </button>
+        </div>
+      </div>
+
       {/* 🔗 SECTION "Connexion & Stockage" */}
       <div className="bg-blue-50 p-6 rounded-xl">
         <h3 className="text-lg font-semibold text-blue-800 mb-4">🔗 Connexion & Stockage</h3>
@@ -461,7 +527,10 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
               <div className="font-medium text-gray-800">{formatLastSync()}</div>
               {isConnectedToCloud && (
                 <button
-                  onClick={handleSyncNow}
+                  onClick={() => {
+                    console.log('🔥🔥🔥 BOUTON SYNC CLIQUÉ - TEST DÉTECTION CLIC 🔥🔥🔥');
+                    handleSyncNow();
+                  }}
                   disabled={isSyncing}
                   className="mt-2 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
