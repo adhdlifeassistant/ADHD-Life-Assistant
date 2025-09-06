@@ -547,6 +547,26 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
           >
             🔄 Test Sync
           </button>
+          <button
+            onClick={async () => {
+              console.log('🧪🧪🧪 TEST SCOPE MINIMAL DEBUG 🧪🧪🧪');
+              try {
+                const result = await driveService.testMinimalScope();
+                console.log('🧪 MINIMAL SCOPE RESULT:', result);
+                if (result.success) {
+                  alert('✅ Test scope minimal réussi ! Voir console pour détails.');
+                } else {
+                  alert(`❌ Test scope minimal échoué: ${result.error}`);
+                }
+              } catch (error) {
+                console.error('🧪 MINIMAL SCOPE ERROR:', error);
+                alert(`💥 Exception test scope: ${error}`);
+              }
+            }}
+            className="px-3 py-1 bg-purple-200 text-purple-800 rounded text-sm"
+          >
+            🧪 Test Scope
+          </button>
         </div>
       </div>
 

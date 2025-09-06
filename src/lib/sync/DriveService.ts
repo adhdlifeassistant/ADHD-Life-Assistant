@@ -38,7 +38,7 @@ export class DriveService {
   }
 
   private generateUniqueId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 11);
   }
 
   private generateChecksum(data: any): string {
@@ -313,9 +313,37 @@ export class DriveService {
   }
 
   async getStorageUsage(): Promise<{ used: number; limit: number }> {
-    const accessToken = this.authProvider.getAccessToken();
+    let accessToken = this.authProvider.getAccessToken();
     console.log('🔍 DRIVE DEBUG: getStorageUsage() - token présent:', !!accessToken);
     console.log('🔍 DRIVE DEBUG: getStorageUsage() - token length:', accessToken?.length || 0);
+    
+    // NOUVEAU : Vérifier expiration du token
+    const tokenTimestamp = localStorage.getItem('auth_token_timestamp');
+    const currentTime = Date.now();
+    if (tokenTimestamp) {
+      const tokenAge = currentTime - parseInt(tokenTimestamp);
+      const tokenAgeMinutes = Math.floor(tokenAge / (1000 * 60));
+      console.log('🕒 TOKEN DEBUG: Token timestamp:', new Date(parseInt(tokenTimestamp)).toISOString());
+      console.log('🕒 TOKEN DEBUG: Current time:', new Date(currentTime).toISOString());
+      console.log('🕒 TOKEN DEBUG: Token age (minutes):', tokenAgeMinutes);
+      console.log('🕒 TOKEN DEBUG: Token expired (>55min)?', tokenAgeMinutes > 55);
+      
+      // Si le token a plus de 55 minutes, tenter un refresh
+      if (tokenAgeMinutes > 55) {
+        console.log('🔄 TOKEN DEBUG: Token probablement expiré, tentative de refresh...');
+        try {
+          const newToken = await this.authProvider.refreshAccessToken();
+          console.log('✅ TOKEN DEBUG: Token refreshed successfully, new length:', newToken?.length || 0);
+          // Utiliser le nouveau token
+          accessToken = newToken;
+        } catch (refreshError) {
+          console.error('❌ TOKEN DEBUG: Refresh failed:', refreshError);
+          return { used: 0, limit: 0 };
+        }
+      }
+    } else {
+      console.log('⚠️ TOKEN DEBUG: Pas de timestamp de token trouvé!');
+    }
     
     if (!accessToken) {
       console.log('❌ DRIVE DEBUG: getStorageUsage() - Pas de token d\'accès');
@@ -324,6 +352,23 @@ export class DriveService {
 
     try {
       const url = 'https://www.googleapis.com/drive/v3/about?fields=storageQuota';
+      
+      // NOUVEAU : Décodage partiel du token JWT pour debug
+      try {
+        const tokenParts = accessToken.split('.');
+        if (tokenParts.length === 3) {
+          // Decoder le payload (partie 2) du JWT
+          const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          console.log('🔍 JWT DEBUG: Token exp timestamp:', payload.exp);
+          console.log('🔍 JWT DEBUG: Token exp date:', payload.exp ? new Date(payload.exp * 1000).toISOString() : 'N/A');
+          console.log('🔍 JWT DEBUG: Token expired (exp)?', payload.exp ? (Date.now() / 1000) > payload.exp : 'Unknown');
+          console.log('🔍 JWT DEBUG: Token scopes:', payload.scope || 'N/A');
+          console.log('🔍 JWT DEBUG: Token audience:', payload.aud || 'N/A');
+        }
+      } catch (jwtError) {
+        console.log('ℹ️ JWT DEBUG: Token n\'est pas un JWT ou erreur décodage:', jwtError);
+      }
+      
       const headers = {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -331,8 +376,11 @@ export class DriveService {
       
       console.log('📡 DRIVE DEBUG: getStorageUsage() - Requête vers Drive API...');
       console.log('📡 DRIVE DEBUG: getStorageUsage() - URL:', url);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Authorization header format check:');
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Starts with "Bearer "?', headers.Authorization.startsWith('Bearer '));
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Token part length:', headers.Authorization.substring(7).length);
+      console.log('📡 DRIVE DEBUG: getStorageUsage() - Token preview:', `Bearer ${accessToken.substring(0, 30)}...`);
       console.log('📡 DRIVE DEBUG: getStorageUsage() - Headers complets:', headers);
-      console.log('📡 DRIVE DEBUG: getStorageUsage() - Token pour curl test:', `Bearer ${accessToken.substring(0, 30)}...`);
       console.log('📡 DRIVE DEBUG: getStorageUsage() - Commande curl équivalente:');
       console.log(`curl -H "Authorization: Bearer ${accessToken}" "${url}"`);
       
@@ -346,6 +394,20 @@ export class DriveService {
         console.log('❌ DRIVE DEBUG: getStorageUsage() - Réponse non OK');
         const errorText = await response.text();
         console.log('❌ DRIVE DEBUG: getStorageUsage() - Error response:', errorText);
+        
+        // NOUVEAU : Analyse détaillée de l'erreur 401
+        if (response.status === 401) {
+          console.log('🔍 401 DEBUG: Erreur 401 détectée - analysing...');
+          try {
+            const errorJson = JSON.parse(errorText);
+            console.log('🔍 401 DEBUG: Error JSON:', errorJson);
+            console.log('🔍 401 DEBUG: Error code:', errorJson.error?.code);
+            console.log('🔍 401 DEBUG: Error message:', errorJson.error?.message);
+          } catch (parseError) {
+            console.log('🔍 401 DEBUG: Error response not JSON:', errorText);
+          }
+        }
+        
         return { used: 0, limit: 0 };
       }
 
@@ -359,6 +421,46 @@ export class DriveService {
     } catch (error) {
       console.error('Erreur lors de la récupération du quota:', error);
       return { used: 0, limit: 0 };
+    }
+  }
+
+  // NOUVEAU : Méthode de test avec scope minimal pour debugging 401
+  async testMinimalScope(): Promise<{ success: boolean; response?: any; error?: string }> {
+    const accessToken = this.authProvider.getAccessToken();
+    
+    if (!accessToken) {
+      return { success: false, error: 'Pas de token d\'accès' };
+    }
+
+    try {
+      // Test avec scope minimal - juste lister les fichiers dans appDataFolder
+      const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1&fields=files(id,name)';
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      console.log('🧪 MINIMAL SCOPE TEST: Testing with drive.metadata.readonly equivalent...');
+      console.log('🧪 MINIMAL SCOPE TEST: URL:', url);
+      
+      const response = await fetch(url, { headers });
+      
+      console.log('🧪 MINIMAL SCOPE TEST: Response status:', response.status);
+      console.log('🧪 MINIMAL SCOPE TEST: Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('🧪 MINIMAL SCOPE TEST: Error response:', errorText);
+        return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+      }
+
+      const result = await response.json();
+      console.log('🧪 MINIMAL SCOPE TEST: Success! Result:', result);
+      
+      return { success: true, response: result };
+    } catch (error) {
+      console.error('🧪 MINIMAL SCOPE TEST: Exception:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }
