@@ -567,6 +567,22 @@ Pour plus d'informations: https://github.com/adhdlifeassistant/ADHD-Life-Assista
           >
             🧪 Test Scope
           </button>
+          <button
+            onClick={async () => {
+              console.log('🔄🔄🔄 FORCE REAUTH WITH NEW SCOPES 🔄🔄🔄');
+              if (confirm('⚠️ Ceci va vous déconnecter et redemander les permissions Google Drive avec les nouveaux scopes. Continuer ?')) {
+                try {
+                  await authProvider.forceReauthWithNewScopes();
+                } catch (error) {
+                  console.error('🔄 REAUTH ERROR:', error);
+                  alert(`💥 Erreur reconnexion: ${error}`);
+                }
+              }
+            }}
+            className="px-3 py-1 bg-red-200 text-red-800 rounded text-sm"
+          >
+            🔄 Reauth Scopes
+          </button>
         </div>
       </div>
 

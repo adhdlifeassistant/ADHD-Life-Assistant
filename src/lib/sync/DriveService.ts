@@ -20,8 +20,11 @@ export interface SyncMetadata {
 export class DriveService {
   private authProvider: GoogleAuthProvider;
   private readonly APP_FOLDER = 'appDataFolder';
+  private readonly VISIBLE_FOLDER_NAME = 'ADHD-Life-Assistant';
   private readonly MIME_TYPE = 'application/json';
+  private readonly USE_VISIBLE_FOLDER = true; // NOUVEAU : Basculer vers dossier visible
   private deviceId: string;
+  private visibleFolderId: string | null = null;
 
   constructor(authProvider: GoogleAuthProvider) {
     this.authProvider = authProvider;
@@ -52,6 +55,72 @@ export class DriveService {
     return hash.toString(16);
   }
 
+  // NOUVEAU : Obtenir ou créer le dossier visible
+  private async getOrCreateVisibleFolder(accessToken: string): Promise<string> {
+    if (this.visibleFolderId) {
+      return this.visibleFolderId;
+    }
+
+    try {
+      // Rechercher le dossier existant
+      const searchQuery = `name='${this.VISIBLE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const searchResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(searchQuery)}&fields=files(id,name)`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      );
+
+      if (searchResponse.ok) {
+        const searchResult = await searchResponse.json();
+        if (searchResult.files && searchResult.files.length > 0) {
+          this.visibleFolderId = searchResult.files[0].id;
+          console.log('📁 FOLDER DEBUG: Dossier existant trouvé:', this.visibleFolderId);
+          return this.visibleFolderId;
+        }
+      }
+
+      // Créer le dossier s'il n'existe pas
+      console.log('📁 FOLDER DEBUG: Création nouveau dossier visible...');
+      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: this.VISIBLE_FOLDER_NAME,
+          mimeType: 'application/vnd.google-apps.folder',
+          description: 'ADHD Life Assistant - Données de synchronisation'
+        })
+      });
+
+      if (!createResponse.ok) {
+        throw new Error(`Impossible de créer le dossier: ${createResponse.statusText}`);
+      }
+
+      const createResult = await createResponse.json();
+      this.visibleFolderId = createResult.id;
+      console.log('📁 FOLDER DEBUG: Nouveau dossier créé:', this.visibleFolderId);
+      
+      return this.visibleFolderId;
+    } catch (error) {
+      console.error('Erreur lors de la création/récupération du dossier:', error);
+      throw error;
+    }
+  }
+
+  // NOUVEAU : Obtenir le parent folder selon la stratégie
+  private async getParentFolder(accessToken: string): Promise<string> {
+    if (this.USE_VISIBLE_FOLDER) {
+      return await this.getOrCreateVisibleFolder(accessToken);
+    } else {
+      return this.APP_FOLDER;
+    }
+  }
+
   async uploadModule(module: string, data: any, version: string = '1.0'): Promise<DriveFile> {
     console.log('🚀 DRIVE DEBUG: uploadModule appelé pour:', module);
     const accessToken = this.authProvider.getAccessToken();
@@ -80,10 +149,14 @@ export class DriveService {
 
     const fileName = `adhd_${module}_${timestamp}.json`;
     
+    // NOUVEAU : Obtenir le parent folder approprié
+    const parentFolder = await this.getParentFolder(accessToken);
+    console.log('📁 UPLOAD DEBUG: Parent folder:', parentFolder, '(visible:', this.USE_VISIBLE_FOLDER, ')');
+    
     // Métadonnées du fichier Drive
     const driveMetadata = {
       name: fileName,
-      parents: [this.APP_FOLDER],
+      parents: [parentFolder],
       description: `ADHD Life Assistant - Module: ${module}`,
       appProperties: {
         module,
@@ -138,8 +211,11 @@ export class DriveService {
       throw new Error('Token d\'accès manquant');
     }
 
+    // NOUVEAU : Obtenir le parent folder approprié
+    const parentFolder = await this.getParentFolder(accessToken);
+    
     // Chercher les fichiers du module, triés par date de modification
-    const query = `parents in '${this.APP_FOLDER}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
+    const query = `parents in '${parentFolder}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
     const listResponse = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime,size,mimeType,appProperties)`,
       {
@@ -196,7 +272,10 @@ export class DriveService {
     }
 
     try {
-      const query = `parents in '${this.APP_FOLDER}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
+      // NOUVEAU : Obtenir le parent folder approprié
+      const parentFolder = await this.getParentFolder(accessToken);
+      
+      const query = `parents in '${parentFolder}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
       const response = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=modifiedTime desc&pageSize=1&fields=files(appProperties)`,
         {
@@ -236,7 +315,10 @@ export class DriveService {
     }
 
     try {
-      const query = `parents in '${this.APP_FOLDER}' and appProperties has {key='module'} and trashed=false`;
+      // NOUVEAU : Obtenir le parent folder approprié
+      const parentFolder = await this.getParentFolder(accessToken);
+      
+      const query = `parents in '${parentFolder}' and appProperties has {key='module'} and trashed=false`;
       const response = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=modifiedTime desc&fields=files(appProperties)`,
         {
@@ -279,7 +361,10 @@ export class DriveService {
 
   private async cleanupOldFiles(module: string, accessToken: string): Promise<void> {
     try {
-      const query = `parents in '${this.APP_FOLDER}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
+      // NOUVEAU : Obtenir le parent folder approprié
+      const parentFolder = await this.getParentFolder(accessToken);
+      
+      const query = `parents in '${parentFolder}' and appProperties has {key='module' and value='${module}'} and trashed=false`;
       const response = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=modifiedTime desc&fields=files(id)`,
         {
@@ -433,14 +518,25 @@ export class DriveService {
     }
 
     try {
-      // Test avec scope minimal - juste lister les fichiers dans appDataFolder
-      const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1&fields=files(id,name)';
+      // Test avec la stratégie actuelle
+      let url: string;
+      if (this.USE_VISIBLE_FOLDER) {
+        // Tester la création/accès au dossier visible
+        const parentFolder = await this.getParentFolder(accessToken);
+        url = `https://www.googleapis.com/drive/v3/files?q=parents in '${parentFolder}'&pageSize=1&fields=files(id,name)`;
+        console.log('🧪 MINIMAL SCOPE TEST: Testing visible folder strategy...');
+        console.log('🧪 MINIMAL SCOPE TEST: Parent folder ID:', parentFolder);
+      } else {
+        // Test avec scope minimal - juste lister les fichiers dans appDataFolder
+        url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1&fields=files(id,name)';
+        console.log('🧪 MINIMAL SCOPE TEST: Testing appDataFolder strategy...');
+      }
+      
       const headers = {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       };
       
-      console.log('🧪 MINIMAL SCOPE TEST: Testing with drive.metadata.readonly equivalent...');
       console.log('🧪 MINIMAL SCOPE TEST: URL:', url);
       
       const response = await fetch(url, { headers });

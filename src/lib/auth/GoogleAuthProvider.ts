@@ -192,7 +192,7 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       client_id: this.clientId,
       redirect_uri: this.getRedirectUri(),
       response_type: 'code',
-      scope: 'openid email profile https://www.googleapis.com/auth/drive.file',
+      scope: 'openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
       state,
       access_type: 'offline',
       prompt: 'consent'
@@ -266,6 +266,7 @@ export class GoogleAuthProvider extends BaseAuthProvider {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_refresh_token');
       localStorage.removeItem('auth_provider');
+      localStorage.removeItem('auth_token_timestamp');
       localStorage.removeItem('oauth_state');
       localStorage.removeItem('oauth_return_url');
       localStorage.removeItem('oauth_pending');
@@ -273,6 +274,40 @@ export class GoogleAuthProvider extends BaseAuthProvider {
     } catch (error) {
       throw this.handleError(error);
     }
+  }
+
+  // NOUVEAU : Forcer reconnexion avec nouveaux scopes
+  async forceReauthWithNewScopes(): Promise<void> {
+    console.log('🔄 SCOPE DEBUG: Forcer reconnexion avec nouveaux scopes...');
+    
+    // Déconnexion complète d'abord
+    await this.signOut();
+    
+    // Ajouter un délai pour s'assurer que le localStorage est nettoyé
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Forcer prompt=consent pour redemander toutes les permissions
+    const state = this.generateRandomString(32);
+    localStorage.setItem('oauth_state', state);
+
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.getRedirectUri(),
+      response_type: 'code',
+      scope: 'openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+      state,
+      access_type: 'offline',
+      prompt: 'consent', // Force redemander les permissions
+      include_granted_scopes: 'false' // Ne pas inclure les anciens scopes
+    });
+
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log('🔄 SCOPE DEBUG: Redirection OAuth avec nouveaux scopes:', params.get('scope'));
+    
+    // Marquer qu'on force une reconnexion
+    localStorage.setItem('oauth_force_reauth', 'true');
+    
+    window.location.href = oauthUrl;
   }
 
   async refreshAccessToken(): Promise<string> {
